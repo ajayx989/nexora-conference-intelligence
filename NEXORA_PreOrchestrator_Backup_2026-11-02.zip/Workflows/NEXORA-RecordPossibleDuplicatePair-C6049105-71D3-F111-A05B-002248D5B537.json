@@ -1,0 +1,518 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_4711d"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "description": "Exact saved run ID. Both candidates must be linked to this run.",
+                  "title": "DiscoveryRunID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_1": {
+                  "description": "Exact saved ID of the first candidate. Must differ from CandidateBID.",
+                  "title": "CandidateAID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_2": {
+                  "description": "Exact saved ID of the second candidate. Must differ from CandidateAID.",
+                  "title": "CandidateBID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_3": {
+                  "description": "Evidence-based reason these candidates may represent the same event. State uncertainties; this does not confirm identity or authorize merging.",
+                  "title": "DuplicateRationale",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "required": [
+                "text",
+                "text_1",
+                "text_2",
+                "text_3"
+              ]
+            }
+          },
+          "metadata": {
+            "operationMetadataId": "b8f61c18-7224-4f8a-9c5f-72fbce5df764"
+          }
+        }
+      },
+      "actions": {
+        "Respond_to_the_agent": {
+          "type": "Response",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "duplicatepairresult": {
+                  "title": "DuplicatePairResult",
+                  "description": "",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "additionalProperties": {}
+            },
+            "statusCode": 200,
+            "body": {
+              "duplicatepairresult": "@{\tvariables('DuplicatePairResult')}"
+            }
+          },
+          "runAfter": {
+            "DuplicatePairRunFound": [
+              "SUCCEEDED",
+              "TIMEDOUT",
+              "SKIPPED",
+              "FAILED"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "81c94f73-dd52-465c-ad3b-a4686da63cc3"
+          }
+        },
+        "Initialize_variable": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "DuplicatePairResult",
+                "type": "string",
+                "value": "NOT_COMPLETED: Duplicate-pair recording did not reach a confirmed outcome. A pair may have been saved if processing started. Inspect existing records before retrying. No candidates were merged."
+              }
+            ]
+          },
+          "runAfter": {}
+        },
+        "LookupDuplicatePairRun": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "2944f657-eb00-4751-bb03-afc58448d9aa",
+              "$filter": "@concat(\r\n  'DiscoveryRunID eq ''',\r\n  replace(trim(coalesce(triggerBody()?['text'],'')),'''',''''''),\r\n  ''''\r\n)",
+              "$top": 2
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "operationId": "GetItems",
+              "connectionName": "shared_sharepointonline"
+            }
+          },
+          "runAfter": {
+            "Initialize_variable": [
+              "SUCCEEDED"
+            ]
+          }
+        },
+        "DuplicatePairRunFound": {
+          "type": "If",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@length(body('LookupDuplicatePairRun')?['value'])",
+                  "@1"
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "DuplicatePairInputsValid": {
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@and(\r\n  not(empty(trim(coalesce(triggerBody()?['text_1'],'')))),\r\n  not(empty(trim(coalesce(triggerBody()?['text_2'],'')))),\r\n  lessOrEquals(length(trim(coalesce(triggerBody()?['text_1'],''))),100),\r\n  lessOrEquals(length(trim(coalesce(triggerBody()?['text_2'],''))),100),\r\n  not(\r\n    equals(\r\n      toLower(trim(coalesce(triggerBody()?['text_1'],''))),\r\n      toLower(trim(coalesce(triggerBody()?['text_2'],'')))\r\n    )\r\n  ),\r\n  not(empty(trim(coalesce(triggerBody()?['text_3'],'')))),\r\n  lessOrEquals(length(coalesce(triggerBody()?['text_3'],'')),10000)\r\n)",
+                      "@true"
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "LookupDuplicateCandidateA": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                      "table": "0bf9a020-1964-4bc0-9655-3987c0d61861",
+                      "$filter": "@concat(\r\n  'CandidateID eq ''',\r\n  replace(trim(triggerBody()?['text_1']),'''',''''''),\r\n  ''''\r\n)",
+                      "$top": 2
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "operationId": "GetItems",
+                      "connectionName": "shared_sharepointonline"
+                    }
+                  }
+                },
+                "LookupDuplicateCandidateB": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                      "table": "0bf9a020-1964-4bc0-9655-3987c0d61861",
+                      "$filter": "@concat(\r\n  'CandidateID eq ''',\r\n  replace(trim(triggerBody()?['text_2']),'''',''''''),\r\n  ''''\r\n)",
+                      "$top": 2
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "operationId": "GetItems",
+                      "connectionName": "shared_sharepointonline"
+                    }
+                  },
+                  "runAfter": {
+                    "LookupDuplicateCandidateA": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "DuplicatePairCandidatesFound": {
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@and(\r\n  equals(length(body('LookupDuplicateCandidateA')?['value']),1),\r\n  equals(length(body('LookupDuplicateCandidateB')?['value']),1)\r\n)",
+                          "@true"
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "LookupPairCandidateAObservationLink": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                          "table": "1d3e1f9f-c804-4b59-8af9-6ffaa5d40e37",
+                          "$filter": "@concat(\r\n  'DiscoveryRunID eq ''',\r\n  replace(first(body('LookupDuplicatePairRun')?['value'])?['DiscoveryRunID'],'''',''''''),\r\n  ''' and CandidateID eq ''',\r\n  replace(first(body('LookupDuplicateCandidateA')?['value'])?['CandidateID'],'''',''''''),\r\n  ''''\r\n)",
+                          "$top": 1
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "operationId": "GetItems",
+                          "connectionName": "shared_sharepointonline"
+                        }
+                      }
+                    },
+                    "LookupPairCandidateAExtractedLink": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                          "table": "d6e470cf-bb83-4f34-82fa-b0e4a9a67da2",
+                          "$filter": "@concat(\r\n  'DiscoveryRunID eq ''',\r\n  replace(first(body('LookupDuplicatePairRun')?['value'])?['DiscoveryRunID'],'''',''''''),\r\n  ''' and CandidateID eq ''',\r\n  replace(first(body('LookupDuplicateCandidateA')?['value'])?['CandidateID'],'''',''''''),\r\n  ''' and LeadStatus eq ''LINKED'''\r\n)",
+                          "$top": 1
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "operationId": "GetItems",
+                          "connectionName": "shared_sharepointonline"
+                        }
+                      },
+                      "runAfter": {
+                        "LookupPairCandidateAObservationLink": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    },
+                    "LookupPairCandidateBObservationLink": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                          "table": "1d3e1f9f-c804-4b59-8af9-6ffaa5d40e37",
+                          "$filter": "@concat(\r\n  'DiscoveryRunID eq ''',\r\n  replace(first(body('LookupDuplicatePairRun')?['value'])?['DiscoveryRunID'],'''',''''''),\r\n  ''' and CandidateID eq ''',\r\n  replace(first(body('LookupDuplicateCandidateB')?['value'])?['CandidateID'],'''',''''''),\r\n  ''''\r\n)",
+                          "$top": 1
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "operationId": "GetItems",
+                          "connectionName": "shared_sharepointonline"
+                        }
+                      },
+                      "runAfter": {
+                        "LookupPairCandidateAExtractedLink": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    },
+                    "LookupPairCandidateBExtractedLink": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                          "table": "d6e470cf-bb83-4f34-82fa-b0e4a9a67da2",
+                          "$filter": "@concat(\r\n  'DiscoveryRunID eq ''',\r\n  replace(first(body('LookupDuplicatePairRun')?['value'])?['DiscoveryRunID'],'''',''''''),\r\n  ''' and CandidateID eq ''',\r\n  replace(first(body('LookupDuplicateCandidateB')?['value'])?['CandidateID'],'''',''''''),\r\n  ''' and LeadStatus eq ''LINKED'''\r\n)",
+                          "$top": 1
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "operationId": "GetItems",
+                          "connectionName": "shared_sharepointonline"
+                        }
+                      },
+                      "runAfter": {
+                        "LookupPairCandidateBObservationLink": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    },
+                    "BothDuplicateCandidatesLinkedToRun": {
+                      "type": "If",
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@and(\r\n  or(\r\n    equals(length(body('LookupPairCandidateAObservationLink')?['value']),1),\r\n    equals(length(body('LookupPairCandidateAExtractedLink')?['value']),1)\r\n  ),\r\n  or(\r\n    equals(length(body('LookupPairCandidateBObservationLink')?['value']),1),\r\n    equals(length(body('LookupPairCandidateBExtractedLink')?['value']),1)\r\n  )\r\n)",
+                              "@true"
+                            ]
+                          }
+                        ]
+                      },
+                      "actions": {
+                        "OrderedDuplicateCandidateIDs": {
+                          "type": "Compose",
+                          "inputs": "@sort(\r\n  createArray(\r\n    first(body('LookupDuplicateCandidateA')?['value'])?['CandidateID'],\r\n    first(body('LookupDuplicateCandidateB')?['value'])?['CandidateID']\r\n  )\r\n)"
+                        },
+                        "BuildDuplicatePairID": {
+                          "type": "Compose",
+                          "inputs": "@concat(\r\n  first(body('LookupDuplicatePairRun')?['value'])?['DiscoveryRunID'],\r\n  '|',\r\n  first(outputs('OrderedDuplicateCandidateIDs')),\r\n  '|',\r\n  last(outputs('OrderedDuplicateCandidateIDs'))\r\n)",
+                          "runAfter": {
+                            "OrderedDuplicateCandidateIDs": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        },
+                        "DuplicatePairIDWithinLimit": {
+                          "type": "If",
+                          "expression": {
+                            "and": [
+                              {
+                                "lessOrEquals": [
+                                  "@length(outputs('BuildDuplicatePairID'))",
+                                  "@255"
+                                ]
+                              }
+                            ]
+                          },
+                          "actions": {
+                            "LookupExistingDuplicatePair": {
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                  "table": "46ad3d6a-8137-4b42-833f-cbb4a303f7fd",
+                                  "$filter": "@concat(\r\n  'DuplicatePairID eq ''',\r\n  replace(outputs('BuildDuplicatePairID'),'''',''''''),\r\n  ''''\r\n)",
+                                  "$top": 2
+                                },
+                                "host": {
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                  "operationId": "GetItems",
+                                  "connectionName": "shared_sharepointonline"
+                                }
+                              }
+                            },
+                            "DuplicatePairAvailable": {
+                              "type": "If",
+                              "expression": {
+                                "and": [
+                                  {
+                                    "equals": [
+                                      "@length(body('LookupExistingDuplicatePair')?['value'])",
+                                      "@0"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "actions": {
+                                "SavePossibleDuplicatePair": {
+                                  "type": "OpenApiConnection",
+                                  "inputs": {
+                                    "parameters": {
+                                      "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                      "table": "46ad3d6a-8137-4b42-833f-cbb4a303f7fd",
+                                      "item/DuplicatePairID": "@outputs('BuildDuplicatePairID')",
+                                      "item/DiscoveryRunID": "@first(body('LookupDuplicatePairRun')?['value'])?['DiscoveryRunID']",
+                                      "item/CandidateAID": "@first(outputs('OrderedDuplicateCandidateIDs'))",
+                                      "item/CandidateBID": "@last(outputs('OrderedDuplicateCandidateIDs'))",
+                                      "item/DuplicateRationale": "@trim(triggerBody()?['text_3'])",
+                                      "item/Title": "@outputs('BuildDuplicatePairID')",
+                                      "item/ReviewStatus/Value": "UNREVIEWED"
+                                    },
+                                    "host": {
+                                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                      "operationId": "PostItem",
+                                      "connectionName": "shared_sharepointonline"
+                                    },
+                                    "retryPolicy": {
+                                      "type": "none"
+                                    }
+                                  }
+                                },
+                                "Set_variable_6": {
+                                  "type": "SetVariable",
+                                  "inputs": {
+                                    "name": "DuplicatePairResult",
+                                    "value": "@concat(\r\n  'POSSIBLE_DUPLICATE_PAIR_SAVED: DuplicatePairID: ',\r\n  outputs('BuildDuplicatePairID'),\r\n  '; CandidateAID: ',\r\n  first(outputs('OrderedDuplicateCandidateIDs')),\r\n  '; CandidateBID: ',\r\n  last(outputs('OrderedDuplicateCandidateIDs')),\r\n  '. ReviewStatus: UNREVIEWED. Duplicate identity is not confirmed. No candidates were merged or changed, and discovery completion is not confirmed.'\r\n)"
+                                  },
+                                  "runAfter": {
+                                    "SavePossibleDuplicatePair": [
+                                      "SUCCEEDED"
+                                    ]
+                                  }
+                                }
+                              },
+                              "else": {
+                                "actions": {
+                                  "Set_variable_5": {
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                      "name": "DuplicatePairResult",
+                                      "value": "@if(\r\n  equals(length(body('LookupExistingDuplicatePair')?['value']),1),\r\n  'DUPLICATE_PAIR_EXISTS: This candidate pair is already registered for the supplied run, regardless of input order. No new pair was saved and no candidates were changed.',\r\n  'DUPLICATE_PAIR_RECORDS: Multiple records use this pair ID. Inspect the duplicate records before proceeding. No pair was saved and no candidates were changed.'\r\n)"
+                                    }
+                                  }
+                                }
+                              },
+                              "runAfter": {
+                                "LookupExistingDuplicatePair": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {
+                              "Set_variable_4": {
+                                "type": "SetVariable",
+                                "inputs": {
+                                  "name": "DuplicatePairResult",
+                                  "value": "BLOCKED_PAIR_ID_LENGTH: The combined run and candidate identifiers exceed the 255-character pair-ID limit. No pair was saved and no candidates were changed."
+                                }
+                              }
+                            }
+                          },
+                          "runAfter": {
+                            "BuildDuplicatePairID": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Set_variable_3": {
+                            "type": "SetVariable",
+                            "inputs": {
+                              "name": "DuplicatePairResult",
+                              "value": "\tBLOCKED_PAIR_LINK: Both candidates must be linked to the supplied discovery run through an observation or a LINKED extracted lead. No pair was saved and no candidates were changed."
+                            }
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "LookupPairCandidateBExtractedLink": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Set_variable_2": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "DuplicatePairResult",
+                          "value": "CANDIDATE_LOOKUP_BLOCKED: Each supplied CandidateID must match exactly one saved candidate. A candidate is missing or its ID is duplicated. No pair was saved and no candidates were changed."
+                        }
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "LookupDuplicateCandidateB": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Set_variable_1": {
+                    "type": "SetVariable",
+                    "inputs": {
+                      "name": "DuplicatePairResult",
+                      "value": "INVALID_PAIR_INPUTS: Supply two different nonblank CandidateIDs of at most 100 characters each and a nonblank DuplicateRationale of at most 10000 characters. No pair was saved and no candidates were changed."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Set_variable": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "DuplicatePairResult",
+                  "value": "@if(\r\n  equals(length(body('LookupDuplicatePairRun')?['value']),0),\r\n  'NOT_FOUND: No discovery run matches the supplied DiscoveryRunID. No duplicate pair was saved and no candidates were changed.',\r\n  'DUPLICATE_RUN_ID: Multiple discovery runs match the supplied DiscoveryRunID. No duplicate pair was saved and no candidates were changed.'\r\n)"
+                }
+              }
+            }
+          },
+          "runAfter": {
+            "LookupDuplicatePairRun": [
+              "SUCCEEDED"
+            ]
+          }
+        }
+      },
+      "outputs": {},
+      "description": "When an agent calls the flow and send back a response.",
+      "metadata": {
+        "defaultToEmbeddedConnections": true
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

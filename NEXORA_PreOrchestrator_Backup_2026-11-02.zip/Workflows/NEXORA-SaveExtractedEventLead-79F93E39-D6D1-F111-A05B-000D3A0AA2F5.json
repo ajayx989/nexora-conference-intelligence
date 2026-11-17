@@ -1,0 +1,355 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_4711d"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "description": "Exact saved discovery run ID.",
+                  "title": "DiscoveryRunID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_1": {
+                  "description": "Exact candidate ID associated with the saved source retrieval.",
+                  "title": "ParentCandidateID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_2": {
+                  "description": "Exact completed retrieval containing the supporting evidence.",
+                  "title": "SourceRetrievalID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_3": {
+                  "description": "Reserved unique ID for this lead-saving request. Reuse it when checking an uncertain outcome; do not substitute a new ID to bypass a duplicate.",
+                  "title": "ExtractedLeadID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_4": {
+                  "description": "Event name exactly as written in the supporting excerpt.",
+                  "title": "EventNameRaw",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_5": {
+                  "description": "Event URL exactly as present in the supporting excerpt.",
+                  "title": "EventURL",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_6": {
+                  "description": "Exact, contiguous passage copied from the saved content, containing the event name and URL.",
+                  "title": "EvidenceExcerpt",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_7": {
+                  "description": "Unverified dates, location, and other claims. Preserve uncertainty and conflicts; leave blank if unavailable.",
+                  "title": "RawClaims",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "required": [
+                "text",
+                "text_1",
+                "text_2",
+                "text_3",
+                "text_4",
+                "text_5",
+                "text_6"
+              ]
+            }
+          },
+          "metadata": {
+            "operationMetadataId": "b8f61c18-7224-4f8a-9c5f-72fbce5df764"
+          }
+        }
+      },
+      "actions": {
+        "Respond_to_the_agent": {
+          "type": "Response",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "extractedeventleadresult": {
+                  "title": "ExtractedEventLeadResult",
+                  "description": "",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "additionalProperties": {}
+            },
+            "statusCode": 200,
+            "body": {
+              "extractedeventleadresult": "@{variables('ExtractedEventLeadResult')}"
+            }
+          },
+          "runAfter": {
+            "ExtractedLeadIDAvailable": [
+              "SUCCEEDED",
+              "TIMEDOUT",
+              "SKIPPED",
+              "FAILED"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "81c94f73-dd52-465c-ad3b-a4686da63cc3"
+          }
+        },
+        "Initialize_variable": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "ExtractedEventLeadResult",
+                "type": "string",
+                "value": "NOT_COMPLETED: Saving the extracted event lead has not reached a confirmed outcome. A record may have been created if processing started. Inspect the saved ExtractedLeadID and flow history before retrying."
+              }
+            ]
+          },
+          "runAfter": {}
+        },
+        "LookupExistingExtractedLead": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "d6e470cf-bb83-4f34-82fa-b0e4a9a67da2",
+              "$filter": "@concat(\r\n  'ExtractedLeadID eq ''',\r\n  replace(triggerBody()?['text_3'], '''', ''''''),\r\n  ''''\r\n)",
+              "$top": 2
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "operationId": "GetItems",
+              "connectionName": "shared_sharepointonline"
+            }
+          },
+          "runAfter": {
+            "Initialize_variable": [
+              "SUCCEEDED"
+            ]
+          }
+        },
+        "ExtractedLeadIDAvailable": {
+          "type": "If",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@length(body('LookupExistingExtractedLead')?['value'])",
+                  "@0"
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "LookupLeadSourceRetrieval": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                  "table": "a91c3930-8a2d-4cbd-8f4b-e585a99939c1",
+                  "$filter": "@concat(\r\n  'SourceRetrievalID eq ''',\r\n  replace(triggerBody()?['text_2'], '''', ''''''),\r\n  ''''\r\n)",
+                  "$top": 2
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "operationId": "GetItems",
+                  "connectionName": "shared_sharepointonline"
+                }
+              }
+            },
+            "LeadSourceRetrievalFound": {
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@length(body('LookupLeadSourceRetrieval')?['value'])",
+                      "@1"
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "LeadSourceIdentityValid": {
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@and(\r\n  equals(\r\n    first(body('LookupLeadSourceRetrieval')?['value'])?['DiscoveryRunID'],\r\n    triggerBody()?['text']\r\n  ),\r\n  equals(\r\n    first(body('LookupLeadSourceRetrieval')?['value'])?['CandidateID'],\r\n    triggerBody()?['text_1']\r\n  ),\r\n  equals(\r\n    first(body('LookupLeadSourceRetrieval')?['value'])?['RetrievalStatus']?['Value'],\r\n    'COMPLETE'\r\n  )\r\n)",
+                          "@true"
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "LeadEvidenceValid": {
+                      "type": "If",
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@and(\r\n  not(empty(trim(coalesce(triggerBody()?['text_3'], '')))),\r\n  lessOrEquals(length(coalesce(triggerBody()?['text_3'], '')), 255),\r\n  not(empty(trim(coalesce(triggerBody()?['text_4'], '')))),\r\n  lessOrEquals(length(coalesce(triggerBody()?['text_4'], '')), 255),\r\n  not(empty(trim(coalesce(triggerBody()?['text_5'], '')))),\r\n  or(\r\n    startsWith(triggerBody()?['text_5'], 'https://'),\r\n    startsWith(triggerBody()?['text_5'], 'http://')\r\n  ),\r\n  not(empty(trim(coalesce(triggerBody()?['text_6'], '')))),\r\n  lessOrEquals(length(coalesce(triggerBody()?['text_6'], '')), 12000),\r\n  contains(\r\n    coalesce(\r\n      first(body('LookupLeadSourceRetrieval')?['value'])?['RetrievedContent'],\r\n      ''\r\n    ),\r\n    triggerBody()?['text_6']\r\n  ),\r\n  contains(triggerBody()?['text_6'], triggerBody()?['text_4']),\r\n  contains(triggerBody()?['text_6'], triggerBody()?['text_5']),\r\n  lessOrEquals(length(coalesce(triggerBody()?['text_7'], '')), 10000)\r\n)",
+                              "@true"
+                            ]
+                          }
+                        ]
+                      },
+                      "actions": {
+                        "CreateExtractedEventLead": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                              "table": "d6e470cf-bb83-4f34-82fa-b0e4a9a67da2",
+                              "item/ExtractedLeadID": "@triggerBody()?['text_3']",
+                              "item/DiscoveryRunID": "@triggerBody()?['text']",
+                              "item/ParentCandidateID": "@triggerBody()?['text_1']",
+                              "item/SourceRetrievalID": "@triggerBody()?['text_2']",
+                              "item/EventNameRaw": "@triggerBody()?['text_4']",
+                              "item/EvidenceExcerpt": "@triggerBody()?['text_6']",
+                              "item/ExtractedAt": "@utcNow()",
+                              "item/Title": "@triggerBody()?['text_4']",
+                              "item/EventURL": "@triggerBody()?['text_5']",
+                              "item/RawClaims": "@coalesce(triggerBody()?['text_7'],'')",
+                              "item/ExtractionNotes": "Saved from an exact excerpt in a completed source retrieval. The excerpt contains the supplied event name and URL. This confirms textual presence only; event identity, dates, location, eligibility, and other claims remain unverified. No event candidate has been created or linked by this operation.",
+                              "item/LeadStatus/Value": "NEW"
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "operationId": "PostItem",
+                              "connectionName": "shared_sharepointonline"
+                            }
+                          }
+                        },
+                        "Set_variable_4": {
+                          "type": "SetVariable",
+                          "inputs": {
+                            "name": "ExtractedEventLeadResult",
+                            "value": "@concat(\r\n  'EXTRACTED_LEAD_SAVED: ExtractedLeadID: ',\r\n  triggerBody()?['text_3'],\r\n  '; EventNameRaw: ', triggerBody()?['text_4'],\r\n  '; EventURL: ', triggerBody()?['text_5'],\r\n  '; SourceRetrievalID: ', triggerBody()?['text_2'],\r\n  '. The lead and supporting excerpt were saved with LeadStatus NEW. No event candidate was created or linked. Event facts, eligibility, Gate 1 approval, and overall discovery completion are not confirmed.'\r\n)"
+                          },
+                          "runAfter": {
+                            "CreateExtractedEventLead": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Set_variable_3": {
+                            "type": "SetVariable",
+                            "inputs": {
+                              "name": "ExtractedEventLeadResult",
+                              "value": "BLOCKED_LEAD_EVIDENCE: Required fields, size limits, or source evidence checks failed. EvidenceExcerpt must be an exact passage from the saved content containing EventNameRaw and the HTTP/HTTPS EventURL. No lead was saved. Raw claims remain unverified."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Set_variable_2": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "ExtractedEventLeadResult",
+                          "value": "BLOCKED_SOURCE_IDENTITY: The source retrieval must belong to the supplied discovery run and parent candidate and have COMPLETE status. No lead was saved."
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Set_variable_1": {
+                    "type": "SetVariable",
+                    "inputs": {
+                      "name": "ExtractedEventLeadResult",
+                      "value": "@if(\r\n  equals(length(body('LookupLeadSourceRetrieval')?['value']), 0),\r\n  'SOURCE_RETRIEVAL_NOT_FOUND: No saved retrieval matches the supplied SourceRetrievalID. No lead was saved.',\r\n  'DUPLICATE_SOURCE_RETRIEVAL_ID: Multiple saved retrievals match the supplied SourceRetrievalID. No lead was saved.'\r\n)"
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "LookupLeadSourceRetrieval": [
+                  "SUCCEEDED"
+                ]
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Set_variable": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "ExtractedEventLeadResult",
+                  "value": "EXTRACTED_LEAD_ID_EXISTS: A record already uses the supplied ExtractedLeadID. No new lead was saved. Inspect the existing record and confirm its run, source retrieval, and event before proceeding. Do not automatically retry with a different ID."
+                }
+              }
+            }
+          },
+          "runAfter": {
+            "LookupExistingExtractedLead": [
+              "SUCCEEDED"
+            ]
+          }
+        }
+      },
+      "outputs": {},
+      "description": "When an agent calls the flow and send back a response.",
+      "metadata": {
+        "defaultToEmbeddedConnections": true
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

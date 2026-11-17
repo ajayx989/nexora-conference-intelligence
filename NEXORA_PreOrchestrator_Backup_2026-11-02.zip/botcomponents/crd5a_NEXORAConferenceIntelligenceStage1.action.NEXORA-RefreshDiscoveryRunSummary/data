@@ -1,0 +1,19 @@
+kind: TaskDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: text
+    description: Use the exact DiscoveryRunID supplied by the user or returned by a previous successful tool call for the run currently being discussed. Preserve the full ID, including hyphens. Never invent an ID or substitute a title, QueryRunID, or SharePoint item ID. If the intended run is unclear or no ID is available, ask the user for the DiscoveryRunID before calling this tool.
+
+modelDescription: Refreshes the saved counters for an existing NEXORA discovery run using its exact DiscoveryRunID. Use when explicitly asked to refresh or reconcile a run summary, or after executing discovery queries. Updates executed query, observation, distinct linked candidate, and query error counts. Does not execute searches, create a run, change run status or planned query count, approve Gate 1, or confirm discovery completion. If DiscoveryRunID is missing, ask for it. Report success only when the tool returns SUMMARY_REFRESHED; otherwise explain the returned outcome.
+outputs:
+  - propertyName: runsummaryresult
+
+action:
+  kind: InvokeFlowTaskAction
+  flowId: 56852678-a6ce-f111-a05b-70a8a599229b
+  connectionProperties:
+    $kind: ConnectionProperties
+    diagnostics:
+    mode: Invoker
+
+outputMode: All

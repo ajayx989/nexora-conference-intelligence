@@ -1,0 +1,21 @@
+kind: TaskDialog
+modelDescription: |-
+  Reads one saved Gate 1 approval request and its decision records using the exact Gate1ApprovalRequestID. Ask for the ID if missing; never generate or substitute one.
+
+  Reports whether request and decision records agree on identity, scope, reviewer, snapshot, and status. Confirm saved Gate 1 approval only when RecordsConsistent=true and Gate1ApprovalConfirmed=true. A rejected, pending, missing, duplicated, or inconsistent result does not establish approval.
+
+  Approval applies only to the saved review snapshot. It does not establish current-run readiness, complete discovery coverage, verified event facts, or permission to execute searches.
+
+  This tool is read-only. It does not create requests, record decisions, execute searches, or change run status. Report returned outcomes accurately.
+outputs:
+  - propertyName: gate1approvalstatusresult
+
+action:
+  kind: InvokeFlowTaskAction
+  flowId: 4f2f421c-60d2-f111-a05b-70a8a599229b
+  connectionProperties:
+    $kind: ConnectionProperties
+    diagnostics:
+    mode: Invoker
+
+outputMode: All

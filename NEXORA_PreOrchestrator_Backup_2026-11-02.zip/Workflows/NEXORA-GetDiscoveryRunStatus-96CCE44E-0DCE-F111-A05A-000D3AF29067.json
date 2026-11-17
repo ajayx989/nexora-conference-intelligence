@@ -1,0 +1,167 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_4711d"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "description": "The discovery run identifier to look up, for example TEST-DISC-001.",
+                  "title": "DiscoveryRunID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "required": [
+                "text"
+              ]
+            }
+          },
+          "metadata": {
+            "operationMetadataId": "b8f61c18-7224-4f8a-9c5f-72fbce5df764"
+          }
+        }
+      },
+      "actions": {
+        "Respond_to_the_agent": {
+          "type": "Response",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "runlookupresult": {
+                  "title": "RunLookupResult",
+                  "description": "",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "additionalProperties": {}
+            },
+            "statusCode": 200,
+            "body": {
+              "runlookupresult": "@{variables('RunLookupResult')}"
+            }
+          },
+          "runAfter": {
+            "Condition": [
+              "SUCCEEDED"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "81c94f73-dd52-465c-ad3b-a4686da63cc3"
+          }
+        },
+        "Get_items": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "2944f657-eb00-4751-bb03-afc58448d9aa",
+              "$filter": "DiscoveryRunID eq '@{triggerBody()?['text']} '",
+              "$top": 2
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "operationId": "GetItems",
+              "connectionName": "shared_sharepointonline"
+            }
+          },
+          "runAfter": {}
+        },
+        "Condition": {
+          "type": "If",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@length(body('Get_items')?['value'])",
+                  1
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "Set_variable": {
+              "type": "SetVariable",
+              "inputs": {
+                "name": "RunLookupResult",
+                "value": "@string(first(body('Get_items')?['value']))"
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Set_variable_1": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "RunLookupResult",
+                  "value": "@if(\r\n  equals(length(body('Get_items')?['value']), 0),\r\n  'NOT_FOUND: No discovery run matches the supplied DiscoveryRunID.',\r\n  'DUPLICATE_RUN_ID: Multiple discovery runs match the supplied DiscoveryRunID. Resolve the duplicate records before reporting status.'\r\n)"
+                }
+              }
+            }
+          },
+          "runAfter": {
+            "Initialize_variable": [
+              "SUCCEEDED"
+            ]
+          }
+        },
+        "Initialize_variable": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "RunLookupResult",
+                "type": "string",
+                "value": "Lookup not completed."
+              }
+            ]
+          },
+          "runAfter": {
+            "Get_items": [
+              "SUCCEEDED"
+            ]
+          }
+        }
+      },
+      "outputs": {},
+      "description": "When an agent calls the flow and send back a response.",
+      "metadata": {
+        "defaultToEmbeddedConnections": true
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

@@ -1,0 +1,59 @@
+<botcomponent_workflowset>
+  <botcomponent_workflow botcomponentid.schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-ClassifyDiscoveryCandidate" workflowid.workflowid="31807836-57d1-f111-a05b-000d3a0aa2f5">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_workflow>
+  <botcomponent_workflow botcomponentid.schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-CreateDiscoveryRun" workflowid.workflowid="12f369bb-3ace-f111-a05a-000d3af215be">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_workflow>
+  <botcomponent_workflow botcomponentid.schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-ExecuteApprovedDiscoveryPlanBatch" workflowid.workflowid="5baf2a58-2ad1-f111-a05b-000d3a0aa2f5">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_workflow>
+  <botcomponent_workflow botcomponentid.schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-ExecuteDiscoveryQuery" workflowid.workflowid="f4e9bac5-49ce-f111-a05a-000d3af215be">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_workflow>
+  <botcomponent_workflow botcomponentid.schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-GenerateDraftDiscoveryPlan" workflowid.workflowid="f2a30dd6-bcd2-f111-a05b-002248d5b537">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_workflow>
+  <botcomponent_workflow botcomponentid.schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-GetDiscoveryPlan" workflowid.workflowid="ad10a9a4-a2cf-f111-a05b-000d3a0aa2f5">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_workflow>
+  <botcomponent_workflow botcomponentid.schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-GetDiscoveryPlanApprovalStatus" workflowid.workflowid="0a392b04-e1cf-f111-a05b-000d3a0aa2f5">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_workflow>
+  <botcomponent_workflow botcomponentid.schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-GetDiscoveryRunStatus" workflowid.workflowid="96cce44e-0dce-f111-a05a-000d3af29067">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_workflow>
+  <botcomponent_workflow botcomponentid.schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-GetGate1ApprovalStatus" workflowid.workflowid="4f2f421c-60d2-f111-a05b-70a8a599229b">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_workflow>
+  <botcomponent_workflow botcomponentid.schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-GetGate1ReviewPackage" workflowid.workflowid="67a4cc9a-71cf-f111-a05b-000d3a0aa2f5">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_workflow>
+  <botcomponent_workflow botcomponentid.schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-LinkExtractedEventLead" workflowid.workflowid="387d027f-dad1-f111-a05b-000d3a0aa2f5">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_workflow>
+  <botcomponent_workflow botcomponentid.schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-NormalizeDiscoveryObservations_9Z-H6D" workflowid.workflowid="b08af7e9-04cf-f111-a05b-000d3a0aa2f5">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_workflow>
+  <botcomponent_workflow botcomponentid.schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-ReadSavedSourceContent" workflowid.workflowid="5e487b8a-7bd1-f111-a05b-000d3a0aa2f5">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_workflow>
+  <botcomponent_workflow botcomponentid.schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-RecordPossibleDuplicatePair" workflowid.workflowid="c6049105-71d3-f111-a05b-002248d5b537">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_workflow>
+  <botcomponent_workflow botcomponentid.schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-RefreshDiscoveryRunSummary" workflowid.workflowid="56852678-a6ce-f111-a05b-70a8a599229b">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_workflow>
+  <botcomponent_workflow botcomponentid.schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-RequestDiscoveryPlanApproval" workflowid.workflowid="0288426f-abcf-f111-a05b-000d3a0aa2f5">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_workflow>
+  <botcomponent_workflow botcomponentid.schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-RequestGate1Approval" workflowid.workflowid="09829de0-37d2-f111-a05b-70a8a599229b">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_workflow>
+  <botcomponent_workflow botcomponentid.schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-RetrieveCandidateSource" workflowid.workflowid="8e2f7801-5cd1-f111-a05b-000d3a0aa2f5">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_workflow>
+  <botcomponent_workflow botcomponentid.schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-SaveExtractedEventLead" workflowid.workflowid="79f93e39-d6d1-f111-a05b-000d3a0aa2f5">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_workflow>
+</botcomponent_workflowset>

@@ -1,0 +1,252 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_4711d"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "description": "A short descriptive title for the requested discovery run.",
+                  "title": "RunTitle",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_1": {
+                  "description": "The user's discovery request, including stated topic, geography, and year preferences.",
+                  "title": "RequestNotes",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_2": {
+                  "description": "Explicit scope version for this discovery run, for example UK-NOV2026-v1. Save exactly as supplied. Do not substitute TEST-v1 or infer a value.",
+                  "title": "ScopeVersion",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "required": [
+                "text",
+                "text_1",
+                "text_2"
+              ]
+            }
+          },
+          "metadata": {
+            "operationMetadataId": "b8f61c18-7224-4f8a-9c5f-72fbce5df764"
+          }
+        }
+      },
+      "actions": {
+        "Respond_to_the_agent": {
+          "type": "Response",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "discoveryrunid": {
+                  "title": "DiscoveryRunID",
+                  "description": "",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "message": {
+                  "title": "Message",
+                  "description": "",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "additionalProperties": {}
+            },
+            "statusCode": 200,
+            "body": {
+              "discoveryrunid": "@{variables('SavedDiscoveryRunID')}",
+              "message": "@{variables('CreateRunMessage')}"
+            }
+          },
+          "runAfter": {
+            "CreateRunInputsValid": [
+              "SUCCEEDED",
+              "TIMEDOUT",
+              "SKIPPED",
+              "FAILED"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "81c94f73-dd52-465c-ad3b-a4686da63cc3"
+          }
+        },
+        "Initialize_variable": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "NewDiscoveryRunID",
+                "type": "string",
+                "value": "@concat('DISC-', guid())"
+              }
+            ]
+          },
+          "runAfter": {}
+        },
+        "Initialize_variable_1": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "SavedDiscoveryRunID",
+                "type": "string",
+                "value": "@{''}"
+              }
+            ]
+          },
+          "runAfter": {
+            "Initialize_variable": [
+              "SUCCEEDED"
+            ]
+          }
+        },
+        "Initialize_variable_2": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "CreateRunMessage",
+                "type": "string",
+                "value": "@''"
+              }
+            ]
+          },
+          "runAfter": {
+            "Initialize_variable_1": [
+              "SUCCEEDED"
+            ]
+          }
+        },
+        "CreateRunInputsValid": {
+          "type": "If",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@and(\r\n  not(empty(trim(coalesce(triggerBody()?['text'],'')))),\r\n  lessOrEquals(length(trim(coalesce(triggerBody()?['text'],''))),255),\r\n  not(empty(trim(coalesce(triggerBody()?['text_1'],'')))),\r\n  lessOrEquals(length(coalesce(triggerBody()?['text_1'],'')),10000),\r\n  not(empty(trim(coalesce(triggerBody()?['text_2'],'')))),\r\n  lessOrEquals(length(trim(coalesce(triggerBody()?['text_2'],''))),100)\r\n)",
+                  "@true"
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "Create_item": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                  "table": "2944f657-eb00-4751-bb03-afc58448d9aa",
+                  "item/DiscoveryRunID": "@variables('NewDiscoveryRunID')",
+                  "item/ScopeVersion": "@trim(triggerBody()?['text_2'])",
+                  "item/Title": "@triggerBody()?['text']",
+                  "item/RunStatus/Value": "PAUSED",
+                  "item/RunType/Value": "DISCOVERY",
+                  "item/PlannedQueryCount": 0,
+                  "item/ExecutedQueryCount": 0,
+                  "item/ObservationCount": 0,
+                  "item/CandidateCount": 0,
+                  "item/ErrorCount": 0,
+                  "item/Notes": "@concat(\r\n  'Discovery run created in PAUSED status. No searches have been executed for this run.',\r\n  decodeUriComponent('%0A'),\r\n  'ScopeVersion: ',\r\n  trim(triggerBody()?['text_2']),\r\n  decodeUriComponent('%0A'),\r\n  'User request: ',\r\n  triggerBody()?['text_1']\r\n)"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "operationId": "PostItem",
+                  "connectionName": "shared_sharepointonline"
+                },
+                "retryPolicy": {
+                  "type": "none"
+                }
+              }
+            },
+            "Set_variable_1": {
+              "type": "SetVariable",
+              "inputs": {
+                "name": "SavedDiscoveryRunID",
+                "value": "@body('Create_item')?['DiscoveryRunID']"
+              },
+              "runAfter": {
+                "Create_item": [
+                  "SUCCEEDED"
+                ]
+              }
+            },
+            "Set_variable_2": {
+              "type": "SetVariable",
+              "inputs": {
+                "name": "CreateRunMessage",
+                "value": "RUN_CREATED: Discovery run saved in PAUSED status with the supplied ScopeVersion. No searches were executed."
+              },
+              "runAfter": {
+                "Set_variable_1": [
+                  "SUCCEEDED"
+                ]
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Set_variable": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "CreateRunMessage",
+                  "value": "INVALID_RUN_INPUTS: Supply a nonblank RunTitle of at most 255 characters, RequestNotes of at most 10000 characters, and ScopeVersion of at most 100 characters. No discovery run was created."
+                }
+              }
+            }
+          },
+          "runAfter": {
+            "Initialize_variable_2": [
+              "SUCCEEDED"
+            ]
+          }
+        }
+      },
+      "outputs": {},
+      "description": "When an agent calls the flow and send back a response.",
+      "metadata": {
+        "defaultToEmbeddedConnections": true
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

@@ -1,0 +1,665 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_4711d"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "description": "Exact DiscoveryRunID whose saved raw observations should be normalized and linked to candidate records.",
+                  "title": "DiscoveryRunID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "required": [
+                "text"
+              ]
+            }
+          },
+          "metadata": {
+            "operationMetadataId": "b8f61c18-7224-4f8a-9c5f-72fbce5df764"
+          }
+        }
+      },
+      "actions": {
+        "Respond_to_the_agent": {
+          "type": "Response",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "normalizationresult": {
+                  "title": "NormalizationResult",
+                  "description": "",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "additionalProperties": {}
+            },
+            "statusCode": 200,
+            "body": {
+              "normalizationresult": "@{variables('NormalizationResult')}"
+            }
+          },
+          "runAfter": {
+            "Condition": [
+              "SUCCEEDED",
+              "TIMEDOUT",
+              "SKIPPED",
+              "FAILED"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "81c94f73-dd52-465c-ad3b-a4686da63cc3"
+          }
+        },
+        "LookupDiscoveryRun": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "2944f657-eb00-4751-bb03-afc58448d9aa",
+              "$filter": "DiscoveryRunID eq '@{triggerBody()?['text']}'",
+              "$top": 2
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "operationId": "GetItems",
+              "connectionName": "shared_sharepointonline"
+            }
+          },
+          "runAfter": {
+            "Initialize_variable": [
+              "SUCCEEDED"
+            ]
+          }
+        },
+        "Initialize_variable": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "NormalizationResult",
+                "type": "string",
+                "value": "NOT_COMPLETED: Observation normalization has not reached a confirmed outcome. Some records may have changed if processing started; inspect the flow run history before retrying."
+              }
+            ]
+          },
+          "runAfter": {}
+        },
+        "Condition": {
+          "type": "If",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@length(body('LookupDiscoveryRun')?['value'])",
+                  1
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "GetRunObservations": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                  "table": "1d3e1f9f-c804-4b59-8af9-6ffaa5d40e37",
+                  "$filter": "DiscoveryRunID eq '@{triggerBody()?['text']}'"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "operationId": "GetItems",
+                  "connectionName": "shared_sharepointonline"
+                }
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            },
+            "Condition_1": {
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "less": [
+                      "@length(body('GetRunObservations')?['value'])",
+                      5000
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "FilterPendingObservations": {
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@body('GetRunObservations')?['value']",
+                    "where": "@equals(and(\r\n  equals(item()?['IngestionStatus']?['Value'], 'NEW'),\r\n  empty(trim(coalesce(item()?['CandidateID'], '')))\r\n),true)"
+                  }
+                },
+                "ObservationBatch": {
+                  "type": "Compose",
+                  "inputs": "@take(body('FilterPendingObservations'), 10)\r\n",
+                  "runAfter": {
+                    "FilterPendingObservations": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "Apply_to_each": {
+                  "type": "Foreach",
+                  "foreach": "@outputs('ObservationBatch')",
+                  "actions": {
+                    "RawObservationURL": {
+                      "type": "Compose",
+                      "inputs": "@trim(coalesce(item()?['ResultURL'], ''))"
+                    },
+                    "Condition_2": {
+                      "type": "If",
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@and(\r\n  or(\r\n    startsWith(toLower(outputs('RawObservationURL')), 'https://'),\r\n    startsWith(toLower(outputs('RawObservationURL')), 'http://')\r\n  ),\r\n  not(contains(outputs('RawObservationURL'), ' '))\r\n)",
+                              "@true"
+                            ]
+                          }
+                        ]
+                      },
+                      "actions": {
+                        "ProcessValidURL": {
+                          "type": "Scope",
+                          "actions": {
+                            "ParsedURLHost": {
+                              "type": "Compose",
+                              "inputs": "@toLower(uriHost(outputs('RawObservationURL')))"
+                            },
+                            "Condition_3": {
+                              "type": "If",
+                              "expression": {
+                                "and": [
+                                  {
+                                    "equals": [
+                                      "@empty(outputs('ParsedURLHost'))",
+                                      "@false"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "actions": {
+                                "CandidateMatchURL": {
+                                  "type": "Compose",
+                                  "inputs": "@outputs('RawObservationURL')"
+                                },
+                                "LookupCandidateRecords": {
+                                  "type": "OpenApiConnection",
+                                  "inputs": {
+                                    "parameters": {
+                                      "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                      "table": "0bf9a020-1964-4bc0-9655-3987c0d61861"
+                                    },
+                                    "host": {
+                                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                      "operationId": "GetItems",
+                                      "connectionName": "shared_sharepointonline"
+                                    }
+                                  },
+                                  "runAfter": {
+                                    "CandidateMatchURL": [
+                                      "SUCCEEDED"
+                                    ]
+                                  },
+                                  "runtimeConfiguration": {
+                                    "paginationPolicy": {
+                                      "minimumItemCount": 5000
+                                    }
+                                  }
+                                },
+                                "Condition_4": {
+                                  "type": "If",
+                                  "expression": {
+                                    "and": [
+                                      {
+                                        "less": [
+                                          "@length(body('LookupCandidateRecords')?['value'])",
+                                          5000
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "actions": {
+                                    "FilterMatchingCandidates": {
+                                      "type": "Query",
+                                      "inputs": {
+                                        "from": "@body('LookupCandidateRecords')?['value']",
+                                        "where": "@equals(coalesce(item()?['CanonicalURL'], ''),outputs('CandidateMatchURL'))"
+                                      }
+                                    },
+                                    "Switch": {
+                                      "type": "Switch",
+                                      "expression": "@length(body('FilterMatchingCandidates'))",
+                                      "default": {
+                                        "actions": {
+                                          "MarkAmbiguousObservation": {
+                                            "type": "OpenApiConnection",
+                                            "inputs": {
+                                              "parameters": {
+                                                "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                                "table": "1d3e1f9f-c804-4b59-8af9-6ffaa5d40e37",
+                                                "id": "@items('Apply_to_each')?['ID']",
+                                                "item/ObservationID": "@items('Apply_to_each')?['ObservationID']",
+                                                "item/DiscoveryRunID": "@items('Apply_to_each')?['DiscoveryRunID']",
+                                                "item/QueryRunID": "@items('Apply_to_each')?['QueryRunID']",
+                                                "item/QueryPackKey": "@items('Apply_to_each')?['QueryPackKey']",
+                                                "item/RetrievedAt": "@items('Apply_to_each')?['RetrievedAt']",
+                                                "item/ProcessingNotes": "@concat(\r\n  coalesce(items('Apply_to_each')?['ProcessingNotes'], ''),\r\n  ' | Linked to a newly created candidate by exact trimmed URL matching. Event identity, eligibility, and source claims remain unverified.'\r\n)",
+                                                "item/IngestionStatus/Value": "ERROR"
+                                              },
+                                              "host": {
+                                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                                "operationId": "PatchItem",
+                                                "connectionName": "shared_sharepointonline"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "cases": {
+                                        "Case": {
+                                          "actions": {
+                                            "CreateCandidate": {
+                                              "type": "OpenApiConnection",
+                                              "inputs": {
+                                                "parameters": {
+                                                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                                  "table": "0bf9a020-1964-4bc0-9655-3987c0d61861",
+                                                  "item/CanonicalURL": "@outputs('CandidateMatchURL')",
+                                                  "item/FirstDiscoveredAt": "@items('Apply_to_each')?['RetrievedAt']",
+                                                  "item/LastDiscoveredAt": "@items('Apply_to_each')?['RetrievedAt']",
+                                                  "item/CandidateID": "@concat('CAND-', guid())",
+                                                  "item/CandidateNameRaw": "@coalesce(items('Apply_to_each')?['TitleRaw'], '')",
+                                                  "item/Stage1Status/Value": "NEW",
+                                                  "item/ProcessingNotes": "Created from a raw search observation using exact trimmed URL matching. Candidate name is copied from the search-result title. Event identity, dates, eligibility, and source claims remain unverified.",
+                                                  "item/CandidateKind/Value": "UNKNOWN"
+                                                },
+                                                "host": {
+                                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                                  "operationId": "PostItem",
+                                                  "connectionName": "shared_sharepointonline"
+                                                }
+                                              }
+                                            },
+                                            "LinkNewCandidate": {
+                                              "type": "OpenApiConnection",
+                                              "inputs": {
+                                                "parameters": {
+                                                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                                  "table": "1d3e1f9f-c804-4b59-8af9-6ffaa5d40e37",
+                                                  "id": "@items('Apply_to_each')?['ID']",
+                                                  "item/ObservationID": "@items('Apply_to_each')?['ObservationID']",
+                                                  "item/DiscoveryRunID": "@items('Apply_to_each')?['DiscoveryRunID']",
+                                                  "item/QueryRunID": "@items('Apply_to_each')?['QueryRunID']",
+                                                  "item/QueryPackKey": "@items('Apply_to_each')?['QueryPackKey']",
+                                                  "item/RetrievedAt": "@items('Apply_to_each')?['RetrievedAt']",
+                                                  "item/ProcessingNotes": "@concat(\r\n  coalesce(items('Apply_to_each')?['ProcessingNotes'], ''),\r\n  ' | Linked to a newly created candidate by exact trimmed URL matching. Event identity, eligibility, and source claims remain unverified.'\r\n)",
+                                                  "item/CandidateID": "@body('CreateCandidate')?['CandidateID']",
+                                                  "item/IngestionStatus/Value": "NORMALIZED"
+                                                },
+                                                "host": {
+                                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                                  "operationId": "PatchItem",
+                                                  "connectionName": "shared_sharepointonline"
+                                                }
+                                              },
+                                              "runAfter": {
+                                                "CreateCandidate": [
+                                                  "SUCCEEDED"
+                                                ]
+                                              }
+                                            }
+                                          },
+                                          "case": 0
+                                        },
+                                        "Case 2": {
+                                          "actions": {
+                                            "LinkExistingCandidate": {
+                                              "type": "OpenApiConnection",
+                                              "inputs": {
+                                                "parameters": {
+                                                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                                  "table": "1d3e1f9f-c804-4b59-8af9-6ffaa5d40e37",
+                                                  "id": "@items('Apply_to_each')?['ID']",
+                                                  "item/ObservationID": "@items('Apply_to_each')?['ObservationID']",
+                                                  "item/DiscoveryRunID": "@items('Apply_to_each')?['DiscoveryRunID']",
+                                                  "item/QueryRunID": "@items('Apply_to_each')?['QueryRunID']",
+                                                  "item/QueryPackKey": "@items('Apply_to_each')?['QueryPackKey']",
+                                                  "item/RetrievedAt": "@items('Apply_to_each')?['RetrievedAt']",
+                                                  "item/ProcessingNotes": "@concat(\r\n  coalesce(items('Apply_to_each')?['ProcessingNotes'], ''),\r\n  ' | Linked to an existing candidate by exact trimmed URL match. Event identity, eligibility, and source claims remain unverified.'\r\n)",
+                                                  "item/CandidateID": "@first(body('FilterMatchingCandidates'))?['CandidateID']",
+                                                  "item/IngestionStatus/Value": "NORMALIZED"
+                                                },
+                                                "host": {
+                                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                                  "operationId": "PatchItem",
+                                                  "connectionName": "shared_sharepointonline"
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "case": 1
+                                        }
+                                      },
+                                      "runAfter": {
+                                        "FilterMatchingCandidates": [
+                                          "SUCCEEDED"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "else": {
+                                    "actions": {
+                                      "MarkCandidateLookupLimit": {
+                                        "type": "OpenApiConnection",
+                                        "inputs": {
+                                          "parameters": {
+                                            "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                            "table": "1d3e1f9f-c804-4b59-8af9-6ffaa5d40e37",
+                                            "id": "@items('Apply_to_each')?['ID']",
+                                            "item/ObservationID": "@items('Apply_to_each')?['ObservationID']",
+                                            "item/DiscoveryRunID": "@items('Apply_to_each')?['DiscoveryRunID']",
+                                            "item/QueryRunID": "@items('Apply_to_each')?['QueryRunID']",
+                                            "item/QueryPackKey": "@items('Apply_to_each')?['QueryPackKey']",
+                                            "item/RetrievedAt": "@items('Apply_to_each')?['RetrievedAt']",
+                                            "item/ProcessingNotes": "@concat(\r\n  coalesce(items('Apply_to_each')?['ProcessingNotes'], ''),\r\n  ' | Normalization blocked: candidate lookup reached the 5000-record retrieval limit and may be incomplete. No candidate created or linked. Review lookup capacity before reprocessing.'\r\n)",
+                                            "item/IngestionStatus/Value": "ERROR"
+                                          },
+                                          "host": {
+                                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                            "operationId": "PatchItem",
+                                            "connectionName": "shared_sharepointonline"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "runAfter": {
+                                    "LookupCandidateRecords": [
+                                      "SUCCEEDED"
+                                    ]
+                                  }
+                                }
+                              },
+                              "else": {
+                                "actions": {
+                                  "MarkMissingHostObservation": {
+                                    "type": "OpenApiConnection",
+                                    "inputs": {
+                                      "parameters": {
+                                        "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                        "table": "1d3e1f9f-c804-4b59-8af9-6ffaa5d40e37",
+                                        "id": "@items('Apply_to_each')?['ID']",
+                                        "item/ObservationID": "@items('Apply_to_each')?['ObservationID']",
+                                        "item/DiscoveryRunID": "@items('Apply_to_each')?['DiscoveryRunID']",
+                                        "item/QueryRunID": "@items('Apply_to_each')?['QueryRunID']",
+                                        "item/QueryPackKey": "@items('Apply_to_each')?['QueryPackKey']",
+                                        "item/RetrievedAt": "@items('Apply_to_each')?['RetrievedAt']",
+                                        "item/ProcessingNotes": "@concat(\r\n  coalesce(items('Apply_to_each')?['ProcessingNotes'], ''),\r\n  ' | Normalization blocked: URL parsing returned no hostname. Raw evidence retained; no candidate linked.'\r\n)",
+                                        "item/IngestionStatus/Value": "INVALID"
+                                      },
+                                      "host": {
+                                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                        "operationId": "PatchItem",
+                                        "connectionName": "shared_sharepointonline"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "runAfter": {
+                                "ParsedURLHost": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "HandleObservationFailure": {
+                          "type": "Scope",
+                          "actions": {
+                            "MarkObservationFailure": {
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                  "table": "1d3e1f9f-c804-4b59-8af9-6ffaa5d40e37",
+                                  "id": "@items('Apply_to_each')?['ID']",
+                                  "item/ObservationID": "@items('Apply_to_each')?['ObservationID']",
+                                  "item/DiscoveryRunID": "@items('Apply_to_each')?['DiscoveryRunID']",
+                                  "item/QueryRunID": "@items('Apply_to_each')?['QueryRunID']",
+                                  "item/QueryPackKey": "@items('Apply_to_each')?['QueryPackKey']",
+                                  "item/RetrievedAt": "@items('Apply_to_each')?['RetrievedAt']",
+                                  "item/ProcessingNotes": "@concat(\r\n  coalesce(items('Apply_to_each')?['ProcessingNotes'], ''),\r\n  ' | Normalization failed or timed out during URL processing or SharePoint operations. A candidate may already have been created or linked. Inspect the flow run history and saved records before reprocessing. Raw evidence retained.'\r\n)",
+                                  "item/IngestionStatus/Value": "ERROR"
+                                },
+                                "host": {
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                  "operationId": "PatchItem",
+                                  "connectionName": "shared_sharepointonline"
+                                }
+                              }
+                            }
+                          },
+                          "runAfter": {
+                            "ProcessValidURL": [
+                              "FAILED",
+                              "TIMEDOUT"
+                            ]
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "MarkInvalidObservation": {
+                            "type": "OpenApiConnection",
+                            "inputs": {
+                              "parameters": {
+                                "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                "table": "1d3e1f9f-c804-4b59-8af9-6ffaa5d40e37",
+                                "id": "@item()?['ID']",
+                                "item/ObservationID": "@item()?['ObservationID']",
+                                "item/DiscoveryRunID": "@item()?['DiscoveryRunID']",
+                                "item/QueryRunID": "@item()?['QueryRunID']",
+                                "item/QueryPackKey": "@item()?['QueryPackKey']",
+                                "item/RetrievedAt": "@item()?['RetrievedAt']",
+                                "item/ProcessingNotes": "@concat(\r\n  coalesce(item()?['ProcessingNotes'], ''),\r\n  ' | Normalization: URL failed the initial HTTP/HTTPS format check. Raw evidence retained; no candidate linked.'\r\n)",
+                                "item/IngestionStatus/Value": "INVALID"
+                              },
+                              "host": {
+                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                "operationId": "PatchItem",
+                                "connectionName": "shared_sharepointonline"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "RawObservationURL": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "ObservationBatch": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "GetObservationsAfterBatch": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                      "table": "1d3e1f9f-c804-4b59-8af9-6ffaa5d40e37",
+                      "$filter": "DiscoveryRunID eq '@{triggerBody()?['text']}'"
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "operationId": "GetItems",
+                      "connectionName": "shared_sharepointonline"
+                    }
+                  },
+                  "runAfter": {
+                    "Apply_to_each": [
+                      "SUCCEEDED"
+                    ]
+                  },
+                  "runtimeConfiguration": {
+                    "paginationPolicy": {
+                      "minimumItemCount": 5000
+                    }
+                  }
+                },
+                "FilterNormalizedAfterBatch": {
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@body('GetObservationsAfterBatch')?['value']",
+                    "where": "@equals(and(\r\n  equals(item()?['IngestionStatus']?['Value'], 'NORMALIZED'),\r\n  not(empty(trim(coalesce(item()?['CandidateID'], ''))))\r\n),true)"
+                  },
+                  "runAfter": {
+                    "GetObservationsAfterBatch": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "FilterInvalidAfterBatch": {
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@body('GetObservationsAfterBatch')?['value']",
+                    "where": "@equals(item()?['IngestionStatus']?['Value'],'INVALID')"
+                  },
+                  "runAfter": {
+                    "FilterNormalizedAfterBatch": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "FilterErrorsAfterBatch": {
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@body('GetObservationsAfterBatch')?['value']",
+                    "where": "@equals(item()?['IngestionStatus']?['Value'],'ERROR')"
+                  },
+                  "runAfter": {
+                    "FilterInvalidAfterBatch": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "FilterPendingAfterBatch": {
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@body('GetObservationsAfterBatch')?['value']",
+                    "where": "@equals(and(\r\n  equals(item()?['IngestionStatus']?['Value'], 'NEW'),\r\n  empty(trim(coalesce(item()?['CandidateID'], '')))\r\n),true)"
+                  },
+                  "runAfter": {
+                    "FilterErrorsAfterBatch": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "Set_variable_2": {
+                  "type": "SetVariable",
+                  "inputs": {
+                    "name": "NormalizationResult",
+                    "value": "@if(\r\n  greaterOrEquals(length(body('GetObservationsAfterBatch')?['value']), 5000),\r\n  'NORMALIZATION_SUMMARY_LIMIT_REACHED: Batch processing ran, but the final lookup reached the retrieval limit. Records may have changed. Complete totals cannot be confirmed; inspect saved records before continuing.',\r\n  concat(\r\n    'NORMALIZATION_BATCH_FINISHED: Selected ',\r\n    string(length(outputs('ObservationBatch'))),\r\n    ' observations for this batch. Current run totals: ',\r\n    string(length(body('FilterNormalizedAfterBatch'))),\r\n    ' normalized and linked observations; ',\r\n    string(length(body('FilterInvalidAfterBatch'))),\r\n    ' INVALID; ',\r\n    string(length(body('FilterErrorsAfterBatch'))),\r\n    ' ERROR; ',\r\n    string(length(body('FilterPendingAfterBatch'))),\r\n    ' pending NEW observations without candidate links. These are observation counts, not distinct candidate counts. Review errors before reprocessing. Candidate verification, Gate 1 approval, and overall discovery completion are not confirmed.'\r\n  )\r\n)"
+                  },
+                  "runAfter": {
+                    "FilterPendingAfterBatch": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Set_variable_1": {
+                    "type": "SetVariable",
+                    "inputs": {
+                      "name": "NormalizationResult",
+                      "value": "NORMALIZATION_LIMIT_REACHED: The observation lookup returned 5000 or more records. Processing did not start because the retrieved data may be incomplete. No observations or candidates were changed by this request. Use a paged batch-processing method for this run."
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "GetRunObservations": [
+                  "SUCCEEDED"
+                ]
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Set_variable": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "NormalizationResult",
+                  "value": "@if(\r\n  equals(length(body('LookupDiscoveryRun')?['value']), 0),\r\n  'NOT_FOUND: No discovery run matches the supplied DiscoveryRunID. No observations or candidates were changed.',\r\n  'DUPLICATE_DISCOVERY_RUN_ID: Multiple discovery runs match the supplied DiscoveryRunID. No observations or candidates were changed. Resolve the duplicate records before continuing.'\r\n)"
+                }
+              }
+            }
+          },
+          "runAfter": {
+            "LookupDiscoveryRun": [
+              "SUCCEEDED"
+            ]
+          }
+        }
+      },
+      "outputs": {},
+      "description": "When an agent calls the flow and send back a response.",
+      "metadata": {
+        "defaultToEmbeddedConnections": true
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

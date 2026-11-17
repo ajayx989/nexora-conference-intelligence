@@ -1,0 +1,14 @@
+kind: TaskDialog
+modelDescription: Retrieves the saved status and recorded decision for an existing discovery plan approval request using its exact ApprovalRequestID. This is read-only. If the ID is missing, ask for it. Report the returned RequestStatus and decision accurately. Confirm a recorded approval only when RecordsConsistent is true, DecisionCount is 1, and both RequestStatus and Decision are APPROVED. Report rejected, pending, missing, duplicate, or inconsistent outcomes as returned. A recorded plan approval does not establish execution readiness, authorize a changed plan, confirm search execution, or approve Gate 1. Do not create another request or execute searches as part of a status lookup.
+outputs:
+  - propertyName: planapprovalstatusresult
+
+action:
+  kind: InvokeFlowTaskAction
+  flowId: 0a392b04-e1cf-f111-a05b-000d3a0aa2f5
+  connectionProperties:
+    $kind: ConnectionProperties
+    diagnostics:
+    mode: Invoker
+
+outputMode: All

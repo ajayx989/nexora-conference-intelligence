@@ -1,0 +1,10 @@
+<botcomponent schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-RecordPossibleDuplicatePair">
+  <componenttype>9</componenttype>
+  <iscustomizable>0</iscustomizable>
+  <name>NEXORA - Record Possible Duplicate Pair</name>
+  <parentbotid>
+    <schemaname>crd5a_NEXORAConferenceIntelligenceStage1</schemaname>
+  </parentbotid>
+  <statecode>0</statecode>
+  <statuscode>1</statuscode>
+</botcomponent>

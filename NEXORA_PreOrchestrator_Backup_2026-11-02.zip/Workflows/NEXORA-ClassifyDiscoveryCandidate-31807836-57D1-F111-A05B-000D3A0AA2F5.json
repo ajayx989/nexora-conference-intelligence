@@ -1,0 +1,344 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_4711d"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "description": "Exact saved discovery run ID. The candidate must be linked to this run.",
+                  "title": "DiscoveryRunID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_1": {
+                  "description": "Exact saved candidate ID to classify. Do not generate or infer an ID.",
+                  "title": "Text CandidateID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_2": {
+                  "description": "Requested classification: EVENT_LEAD, MULTI_EVENT_SOURCE, OTHER_SOURCE, or UNKNOWN.",
+                  "title": "CandidateKind",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_3": {
+                  "description": "Exact saved candidate URL supporting this classification.",
+                  "title": "SourceURL",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_4": {
+                  "description": "Explain the supporting evidence and any uncertainty. Classification does not establish verified event facts.",
+                  "title": "ClassificationRationale",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "required": [
+                "text",
+                "text_1",
+                "text_2",
+                "text_3",
+                "text_4"
+              ]
+            }
+          },
+          "metadata": {
+            "operationMetadataId": "b8f61c18-7224-4f8a-9c5f-72fbce5df764"
+          }
+        }
+      },
+      "actions": {
+        "Respond_to_the_agent": {
+          "type": "Response",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "candidateclassificationresult": {
+                  "title": "CandidateClassificationResult",
+                  "description": "",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "additionalProperties": {}
+            },
+            "statusCode": 200,
+            "body": {
+              "candidateclassificationresult": "@{variables('CandidateClassificationResult')}"
+            }
+          },
+          "runAfter": {
+            "ClassificationRunFound": [
+              "SUCCEEDED",
+              "TIMEDOUT",
+              "SKIPPED",
+              "FAILED"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "81c94f73-dd52-465c-ad3b-a4686da63cc3"
+          }
+        },
+        "Initialize_variable": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "CandidateClassificationResult",
+                "type": "string",
+                "value": "NOT_COMPLETED: Candidate classification has not reached a confirmed outcome. If an update was attempted, inspect the flow history and saved candidate before retrying."
+              }
+            ]
+          },
+          "runAfter": {}
+        },
+        "LookupClassificationRun": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "2944f657-eb00-4751-bb03-afc58448d9aa",
+              "$filter": "@concat(\r\n  'DiscoveryRunID eq ''',\r\n  replace(triggerBody()?['text'], '''', ''''''),\r\n  ''''\r\n)",
+              "$top": 2
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "operationId": "GetItems",
+              "connectionName": "shared_sharepointonline"
+            }
+          },
+          "runAfter": {
+            "Initialize_variable": [
+              "SUCCEEDED"
+            ]
+          }
+        },
+        "ClassificationRunFound": {
+          "type": "If",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@length(body('LookupClassificationRun')?['value'])",
+                  1
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "LookupClassificationCandidate": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                  "table": "0bf9a020-1964-4bc0-9655-3987c0d61861",
+                  "$filter": "@concat(\r\n  'CandidateID eq ''',\r\n  replace(triggerBody()?['text_1'], '''', ''''''),\r\n  ''''\r\n)",
+                  "$top": 2
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "operationId": "GetItems",
+                  "connectionName": "shared_sharepointonline"
+                }
+              }
+            },
+            "ClassificationCandidateFound": {
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@length(body('LookupClassificationCandidate')?['value'])",
+                      1
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "LookupClassificationObservationLink": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                      "table": "1d3e1f9f-c804-4b59-8af9-6ffaa5d40e37",
+                      "$filter": "@concat(\r\n  'DiscoveryRunID eq ''',\r\n  replace(triggerBody()?['text'], '''', ''''''),\r\n  ''' and CandidateID eq ''',\r\n  replace(triggerBody()?['text_1'], '''', ''''''),\r\n  ''''\r\n)",
+                      "$top": 1
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "operationId": "GetItems",
+                      "connectionName": "shared_sharepointonline"
+                    }
+                  }
+                },
+                "ClassificationInputsValid": {
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@and(\r\n  or(\r\n    equals(length(body('LookupClassificationObservationLink')?['value']),1),\r\n    equals(length(body('LookupClassificationExtractedLeadLink')?['value']),1)\r\n  ),\r\n  contains(\r\n    createArray('EVENT_LEAD','MULTI_EVENT_SOURCE','OTHER_SOURCE','UNKNOWN'),\r\n    triggerBody()?['text_2']\r\n  ),\r\n  not(empty(trim(coalesce(triggerBody()?['text_3'],'')))),\r\n  equals(\r\n    triggerBody()?['text_3'],\r\n    first(body('LookupClassificationCandidate')?['value'])?['CanonicalURL']\r\n  ),\r\n  not(empty(trim(coalesce(triggerBody()?['text_4'],''))))\r\n)",
+                          "@true"
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "SaveCandidateClassification": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                          "table": "0bf9a020-1964-4bc0-9655-3987c0d61861",
+                          "id": "@first(body('LookupClassificationCandidate')?['value'])?['ID']",
+                          "item/CanonicalURL": "@first(body('LookupClassificationCandidate')?['value'])?['CanonicalURL']",
+                          "item/FirstDiscoveredAt": "@first(body('LookupClassificationCandidate')?['value'])?['FirstDiscoveredAt']",
+                          "item/LastDiscoveredAt": "@first(body('LookupClassificationCandidate')?['value'])?['LastDiscoveredAt']",
+                          "item/CandidateID": "@first(body('LookupClassificationCandidate')?['value'])?['CandidateID']",
+                          "item/Stage1Status/Value": "@first(body('LookupClassificationCandidate')?['value'])?['Stage1Status']?['Value']",
+                          "item/ProcessingNotes": "@concat(\r\n  coalesce(first(body('LookupClassificationCandidate')?['value'])?['ProcessingNotes'], ''),\r\n  decodeUriComponent('%0A'),\r\n  '[Classification ', utcNow(), ']',\r\n  ' Run: ', triggerBody()?['text'],\r\n  '; CandidateKind: ', triggerBody()?['text_2'],\r\n  '; SourceURL: ', triggerBody()?['text_3'],\r\n  '; Rationale: ', triggerBody()?['text_4'],\r\n  '. Classification only; event facts and eligibility are not verified.'\r\n)",
+                          "item/CandidateKind/Value": "@triggerBody()?['text_2']"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "operationId": "PatchItem",
+                          "connectionName": "shared_sharepointonline"
+                        }
+                      }
+                    },
+                    "Set_variable_3": {
+                      "type": "SetVariable",
+                      "inputs": {
+                        "name": "CandidateClassificationResult",
+                        "value": "@concat(\r\n  'CLASSIFICATION_SAVED: Candidate ',\r\n  triggerBody()?['text_1'],\r\n  ' was classified as ',\r\n  triggerBody()?['text_2'],\r\n  '. Supporting rationale was appended to ProcessingNotes. Event verification, Gate 1 approval, and overall discovery completion are not confirmed.'\r\n)"
+                      },
+                      "runAfter": {
+                        "SaveCandidateClassification": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Set_variable_2": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "CandidateClassificationResult",
+                          "value": "BLOCKED_CLASSIFICATION: The candidate must be linked to the supplied run, CandidateKind must be an allowed value, SourceURL must exactly match the saved CanonicalURL, and a nonblank rationale is required. No candidate was changed."
+                        }
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "LookupClassificationExtractedLeadLink": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "LookupClassificationExtractedLeadLink": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                      "table": "d6e470cf-bb83-4f34-82fa-b0e4a9a67da2",
+                      "$filter": "@concat(\r\n  'DiscoveryRunID eq ''',\r\n  replace(trim(triggerBody()?['text']),'''',''''''),\r\n  ''' and CandidateID eq ''',\r\n  replace(trim(triggerBody()?['text_1']),'''',''''''),\r\n  ''' and LeadStatus eq ''LINKED'''\r\n)",
+                      "$top": 1
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "operationId": "GetItems",
+                      "connectionName": "shared_sharepointonline"
+                    }
+                  },
+                  "runAfter": {
+                    "LookupClassificationObservationLink": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Set_variable_1": {
+                    "type": "SetVariable",
+                    "inputs": {
+                      "name": "CandidateClassificationResult",
+                      "value": "@if(\r\n  equals(length(body('LookupClassificationCandidate')?['value']), 0),\r\n  'CANDIDATE_NOT_FOUND: No candidate matches the supplied CandidateID. No candidate was changed.',\r\n  'DUPLICATE_CANDIDATE_ID: Multiple candidates match the supplied CandidateID. No candidate was changed.'\r\n)"
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "LookupClassificationCandidate": [
+                  "SUCCEEDED"
+                ]
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Set_variable": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "CandidateClassificationResult",
+                  "value": "@if(\r\n  equals(length(body('LookupClassificationRun')?['value']), 0),\r\n  'NOT_FOUND: No discovery run matches the supplied DiscoveryRunID. No candidate was changed.',\r\n  'DUPLICATE_RUN_ID: Multiple discovery runs match the supplied DiscoveryRunID. No candidate was changed.'\r\n)"
+                }
+              }
+            }
+          },
+          "runAfter": {
+            "LookupClassificationRun": [
+              "SUCCEEDED"
+            ]
+          }
+        }
+      },
+      "outputs": {},
+      "description": "When an agent calls the flow and send back a response.",
+      "metadata": {
+        "defaultToEmbeddedConnections": true
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

@@ -1,0 +1,675 @@
+<ImportExportXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.26103.149" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.26103.00149">
+  <Entities></Entities>
+  <Roles></Roles>
+  <Workflows>
+    <Workflow WorkflowId="{b08af7e9-04cf-f111-a05b-000d3a0aa2f5}" Name="NEXORA - Normalize Discovery Observations" Description="When an agent calls the flow and send back a response.">
+      <JsonFileName>/Workflows/NEXORA-NormalizeDiscoveryObservations-B08AF7E9-04CF-F111-A05B-000D3A0AA2F5.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Normalize Discovery Observations" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="1033" description="When an agent calls the flow and send back a response." />
+      </Descriptions>
+    </Workflow>
+    <Workflow WorkflowId="{67a4cc9a-71cf-f111-a05b-000d3a0aa2f5}" Name="NEXORA - Get Gate 1 Review Package" Description="When an agent calls the flow and send back a response.">
+      <JsonFileName>/Workflows/NEXORA-GetGate1ReviewPackage-67A4CC9A-71CF-F111-A05B-000D3A0AA2F5.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Get Gate 1 Review Package" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="1033" description="When an agent calls the flow and send back a response." />
+      </Descriptions>
+    </Workflow>
+    <Workflow WorkflowId="{ad10a9a4-a2cf-f111-a05b-000d3a0aa2f5}" Name="NEXORA - Get Discovery Plan" Description="When an agent calls the flow and send back a response.">
+      <JsonFileName>/Workflows/NEXORA-GetDiscoveryPlan-AD10A9A4-A2CF-F111-A05B-000D3A0AA2F5.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Get Discovery Plan" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="1033" description="When an agent calls the flow and send back a response." />
+      </Descriptions>
+    </Workflow>
+    <Workflow WorkflowId="{0288426f-abcf-f111-a05b-000d3a0aa2f5}" Name="NEXORA - Request Discovery Plan Approval" Description="When an agent calls the flow and send back a response.">
+      <JsonFileName>/Workflows/NEXORA-RequestDiscoveryPlanApproval-0288426F-ABCF-F111-A05B-000D3A0AA2F5.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Request Discovery Plan Approval" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="1033" description="When an agent calls the flow and send back a response." />
+      </Descriptions>
+    </Workflow>
+    <Workflow WorkflowId="{0a392b04-e1cf-f111-a05b-000d3a0aa2f5}" Name="NEXORA - Get Discovery Plan Approval Status" Description="When an agent calls the flow and send back a response.">
+      <JsonFileName>/Workflows/NEXORA-GetDiscoveryPlanApprovalStatus-0A392B04-E1CF-F111-A05B-000D3A0AA2F5.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Get Discovery Plan Approval Status" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="1033" description="When an agent calls the flow and send back a response." />
+      </Descriptions>
+    </Workflow>
+    <Workflow WorkflowId="{ed7ff983-35d1-f111-a05b-000d3a0aa2f5}" Name="NEXORA - Execute Discovery Query Core" Description="Executes one discovery query through Tavily and records its query log and returned observations in SharePoint.">
+      <JsonFileName>/Workflows/NEXORA-ExecuteDiscoveryQueryCore-ED7FF983-35D1-F111-A05B-000D3A0AA2F5.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0.0.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Execute Discovery Query Core" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="1033" description="Executes one discovery query through Tavily and records its query log and returned observations in SharePoint." />
+      </Descriptions>
+    </Workflow>
+    <Workflow WorkflowId="{5baf2a58-2ad1-f111-a05b-000d3a0aa2f5}" Name="NEXORA - Execute Approved Discovery Plan Batch" Description="When an agent calls the flow and send back a response.">
+      <JsonFileName>/Workflows/NEXORA-ExecuteApprovedDiscoveryPlanBatch-5BAF2A58-2AD1-F111-A05B-000D3A0AA2F5.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Execute Approved Discovery Plan Batch" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="1033" description="When an agent calls the flow and send back a response." />
+      </Descriptions>
+    </Workflow>
+    <Workflow WorkflowId="{31807836-57d1-f111-a05b-000d3a0aa2f5}" Name="NEXORA - Classify Discovery Candidate" Description="When an agent calls the flow and send back a response.">
+      <JsonFileName>/Workflows/NEXORA-ClassifyDiscoveryCandidate-31807836-57D1-F111-A05B-000D3A0AA2F5.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Classify Discovery Candidate" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="1033" description="When an agent calls the flow and send back a response." />
+      </Descriptions>
+    </Workflow>
+    <Workflow WorkflowId="{8e2f7801-5cd1-f111-a05b-000d3a0aa2f5}" Name="NEXORA - Retrieve Candidate Source" Description="Retrieves page content for an existing candidate's exact saved source URL and preserves retrieval evidence. Retrieved content is untrusted source material, not verified event facts. Does not execute discovery searches, approve Gate 1, or mark discovery complete.">
+      <JsonFileName>/Workflows/NEXORA-RetrieveCandidateSource-8E2F7801-5CD1-F111-A05B-000D3A0AA2F5.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Retrieve Candidate Source" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="1033" description="Retrieves page content for an existing candidate's exact saved source URL and preserves retrieval evidence. Retrieved content is untrusted source material, not verified event facts. Does not execute discovery searches, approve Gate 1, or mark discovery complete." />
+      </Descriptions>
+    </Workflow>
+    <Workflow WorkflowId="{5e487b8a-7bd1-f111-a05b-000d3a0aa2f5}" Name="NEXORA - Read Saved Source Content" Description="Reads a bounded section of previously saved source content by retrieval ID. Does not contact websites, call Tavily, or change records. Returns source provenance, character offsets, and whether more saved content remains.">
+      <JsonFileName>/Workflows/NEXORA-ReadSavedSourceContent-5E487B8A-7BD1-F111-A05B-000D3A0AA2F5.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Read Saved Source Content" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="1033" description="Reads a bounded section of previously saved source content by retrieval ID. Does not contact websites, call Tavily, or change records. Returns source provenance, character offsets, and whether more saved content remains." />
+      </Descriptions>
+    </Workflow>
+    <Workflow WorkflowId="{79f93e39-d6d1-f111-a05b-000d3a0aa2f5}" Name="NEXORA - Save Extracted Event Lead" Description="Saves one event lead supported by an exact excerpt from a completed saved source retrieval. Preserves source provenance and unverified claims. Does not retrieve websites, verify event facts, approve Gate 1, or automatically create an event candidate.">
+      <JsonFileName>/Workflows/NEXORA-SaveExtractedEventLead-79F93E39-D6D1-F111-A05B-000D3A0AA2F5.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Save Extracted Event Lead" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="1033" description="Saves one event lead supported by an exact excerpt from a completed saved source retrieval. Preserves source provenance and unverified claims. Does not retrieve websites, verify event facts, approve Gate 1, or automatically create an event candidate." />
+      </Descriptions>
+    </Workflow>
+    <Workflow WorkflowId="{387d027f-dad1-f111-a05b-000d3a0aa2f5}" Name="NEXORA - Link Extracted Event Lead" Description="Links one saved extracted event lead to an existing candidate with the same exact URL, or creates a new candidate when no match exists. Preserves extraction provenance. Does not verify event facts, execute searches, approve Gate 1, or confirm discovery completion.">
+      <JsonFileName>/Workflows/NEXORA-LinkExtractedEventLead-387D027F-DAD1-F111-A05B-000D3A0AA2F5.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Link Extracted Event Lead" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="1033" description="Links one saved extracted event lead to an existing candidate with the same exact URL, or creates a new candidate when no match exists. Preserves extraction provenance. Does not verify event facts, execute searches, approve Gate 1, or confirm discovery completion." />
+      </Descriptions>
+    </Workflow>
+    <Workflow WorkflowId="{12f369bb-3ace-f111-a05a-000d3af215be}" Name="NEXORA - Create Discovery Run" Description="When an agent calls the flow and send back a response.">
+      <JsonFileName>/Workflows/NEXORA-CreateDiscoveryRun-12F369BB-3ACE-F111-A05A-000D3AF215BE.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Create Discovery Run" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="1033" description="When an agent calls the flow and send back a response." />
+      </Descriptions>
+    </Workflow>
+    <Workflow WorkflowId="{f4e9bac5-49ce-f111-a05a-000d3af215be}" Name="NEXORA - Execute Discovery Query" Description="Executes one discovery query through Tavily and records its query log and returned observations in SharePoint.">
+      <JsonFileName>/Workflows/NEXORA-ExecuteDiscoveryQuery-F4E9BAC5-49CE-F111-A05A-000D3AF215BE.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Execute Discovery Query" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="1033" description="Executes one discovery query through Tavily and records its query log and returned observations in SharePoint." />
+      </Descriptions>
+    </Workflow>
+    <Workflow WorkflowId="{96cce44e-0dce-f111-a05a-000d3af29067}" Name="NEXORA - Get Discovery Run Status" Description="Retrieves an existing discovery run by DiscoveryRunID and returns its saved details, or reports a missing or duplicate run.">
+      <JsonFileName>/Workflows/NEXORA-GetDiscoveryRunStatus-96CCE44E-0DCE-F111-A05A-000D3AF29067.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Get Discovery Run Status" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="1033" description="Retrieves an existing discovery run by DiscoveryRunID and returns its saved details, or reports a missing or duplicate run." />
+      </Descriptions>
+    </Workflow>
+    <Workflow WorkflowId="{36fc02c2-b6d6-f111-84e8-002248d5b537}" Name="NEXORA - Process Gate 1 Approval">
+      <JsonFileName>/Workflows/NEXORA-ProcessGate1Approval-36FC02C2-B6D6-F111-84E8-002248D5B537.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0.0.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>0</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Process Gate 1 Approval" />
+      </LocalizedNames>
+    </Workflow>
+    <Workflow WorkflowId="{38fc02c2-b6d6-f111-84e8-002248d5b537}" Name="NEXORA - Process Discovery Plan Approval">
+      <JsonFileName>/Workflows/NEXORA-ProcessDiscoveryPlanApproval-38FC02C2-B6D6-F111-84E8-002248D5B537.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0.0.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>0</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Process Discovery Plan Approval" />
+      </LocalizedNames>
+    </Workflow>
+    <Workflow WorkflowId="{f2a30dd6-bcd2-f111-a05b-002248d5b537}" Name="NEXORA - Generate Draft Discovery Plan" Description="Creates DRAFT plans for an existing PAUSED run. Requires DiscoveryRunID, new PlanVersion, TargetYear, 1–10 semicolon-separated QueryPackKeys, and TargetGeography. PlanningNotes optional.&#xA;&#xA;Optional EventStartDate and EventEndDate must both be supplied as YYYY-MM-DD, within TargetYear, with end &gt;= start; otherwise omit both.&#xA;&#xA;Packs must be enabled, use TAVILY_API, match geography, and have SPECIFIC year mode with {{YEAR}} templates. Expands {{YEAR}} and appends supplied event dates. Dates guide search; they do not enforce filtering or verify event facts.&#xA;&#xA;Saves DRAFT items with reserved QueryRunIDs and MaxResults 5. Does not request approval, execute searches, change run status, or update PlannedQueryCount.&#xA;&#xA;Never invent pack keys or automatically retry with another version after blocked/uncertain outcomes. Confirm creation only for DRAFT_PLAN_CREATED, then retrieve the saved plan for review.">
+      <JsonFileName>/Workflows/NEXORA-GenerateDraftDiscoveryPlan-F2A30DD6-BCD2-F111-A05B-002248D5B537.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Generate Draft Discovery Plan" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="1033" description="Creates DRAFT plans for an existing PAUSED run. Requires DiscoveryRunID, new PlanVersion, TargetYear, 1–10 semicolon-separated QueryPackKeys, and TargetGeography. PlanningNotes optional.&#xA;&#xA;Optional EventStartDate and EventEndDate must both be supplied as YYYY-MM-DD, within TargetYear, with end &gt;= start; otherwise omit both.&#xA;&#xA;Packs must be enabled, use TAVILY_API, match geography, and have SPECIFIC year mode with {{YEAR}} templates. Expands {{YEAR}} and appends supplied event dates. Dates guide search; they do not enforce filtering or verify event facts.&#xA;&#xA;Saves DRAFT items with reserved QueryRunIDs and MaxResults 5. Does not request approval, execute searches, change run status, or update PlannedQueryCount.&#xA;&#xA;Never invent pack keys or automatically retry with another version after blocked/uncertain outcomes. Confirm creation only for DRAFT_PLAN_CREATED, then retrieve the saved plan for review." />
+      </Descriptions>
+    </Workflow>
+    <Workflow WorkflowId="{c6049105-71d3-f111-a05b-002248d5b537}" Name="NEXORA - Record Possible Duplicate Pair" Description="When an agent calls the flow and send back a response.">
+      <JsonFileName>/Workflows/NEXORA-RecordPossibleDuplicatePair-C6049105-71D3-F111-A05B-002248D5B537.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Record Possible Duplicate Pair" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="1033" description="When an agent calls the flow and send back a response." />
+      </Descriptions>
+    </Workflow>
+    <Workflow WorkflowId="{56852678-a6ce-f111-a05b-70a8a599229b}" Name="NEXORA - Refresh Discovery Run Summary" Description="Refreshes saved counters for an existing NEXORA discovery run using its exact DiscoveryRunID.&#xA;&#xA;Updates PlannedQueryCount as the number of distinct nonblank QueryRunIDs across saved query records and discovery-plan items, including drafts and cancelled items. This is a registered-query count, not an approved-plan count or proof of coverage.&#xA;&#xA;Also updates executed-query, observation, distinct linked-candidate, and query ERROR/TIMEOUT counts. Candidate counts include links from observations and LINKED extracted event leads.&#xA;&#xA;Does not execute searches, create plans, change run status, approve any gate, or confirm discovery completion. If DiscoveryRunID is missing, ask for it. Report success only when the tool returns SUMMARY_REFRESHED; otherwise explain the returned outcome.">
+      <JsonFileName>/Workflows/NEXORA-RefreshDiscoveryRunSummary-56852678-A6CE-F111-A05B-70A8A599229B.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Refresh Discovery Run Summary" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="1033" description="Refreshes saved counters for an existing NEXORA discovery run using its exact DiscoveryRunID.&#xA;&#xA;Updates PlannedQueryCount as the number of distinct nonblank QueryRunIDs across saved query records and discovery-plan items, including drafts and cancelled items. This is a registered-query count, not an approved-plan count or proof of coverage.&#xA;&#xA;Also updates executed-query, observation, distinct linked-candidate, and query ERROR/TIMEOUT counts. Candidate counts include links from observations and LINKED extracted event leads.&#xA;&#xA;Does not execute searches, create plans, change run status, approve any gate, or confirm discovery completion. If DiscoveryRunID is missing, ask for it. Report success only when the tool returns SUMMARY_REFRESHED; otherwise explain the returned outcome." />
+      </Descriptions>
+    </Workflow>
+    <Workflow WorkflowId="{09829de0-37d2-f111-a05b-70a8a599229b}" Name="NEXORA - Request Gate 1 Approval" Description="Assembles a Gate 1 review snapshot from saved discovery records and queues it for human review. Requires exact DiscoveryRunID and a reserved unique Gate1ApprovalRequestID.&#xA;&#xA;Use only when the user explicitly requests Gate 1 review. Never invent or substitute IDs. An existing request ID blocks creation; do not retry automatically with another ID.&#xA;&#xA;GATE1_APPROVAL_REQUEST_QUEUED confirms only that the request and snapshot were saved. It does not confirm delivery, a human decision, or Gate 1 approval. Use Get Gate 1 Approval Status when asked to check progress.&#xA;&#xA;Coverage gaps and unverified claims remain part of the review. Approval concerns the saved snapshot and does not verify event facts, establish complete coverage, authorize searches, or change run status.&#xA;&#xA;Do not retry automatically after an error, timeout, or uncertain outcome. Inspect the existing request first.">
+      <JsonFileName>/Workflows/NEXORA-RequestGate1Approval-09829DE0-37D2-F111-A05B-70A8A599229B.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Request Gate 1 Approval" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="1033" description="Assembles a Gate 1 review snapshot from saved discovery records and queues it for human review. Requires exact DiscoveryRunID and a reserved unique Gate1ApprovalRequestID.&#xA;&#xA;Use only when the user explicitly requests Gate 1 review. Never invent or substitute IDs. An existing request ID blocks creation; do not retry automatically with another ID.&#xA;&#xA;GATE1_APPROVAL_REQUEST_QUEUED confirms only that the request and snapshot were saved. It does not confirm delivery, a human decision, or Gate 1 approval. Use Get Gate 1 Approval Status when asked to check progress.&#xA;&#xA;Coverage gaps and unverified claims remain part of the review. Approval concerns the saved snapshot and does not verify event facts, establish complete coverage, authorize searches, or change run status.&#xA;&#xA;Do not retry automatically after an error, timeout, or uncertain outcome. Inspect the existing request first." />
+      </Descriptions>
+    </Workflow>
+    <Workflow WorkflowId="{4f2f421c-60d2-f111-a05b-70a8a599229b}" Name="NEXORA - Get Gate 1 Approval Status" Description="Retrieves a saved Gate 1 approval request and its recorded decision, checking that their identities, reviewer, snapshot, and statuses agree. Does not create requests, record approval, execute searches, or change records.">
+      <JsonFileName>/Workflows/NEXORA-GetGate1ApprovalStatus-4F2F421C-60D2-F111-A05B-70A8A599229B.json</JsonFileName>
+      <Type>1</Type>
+      <Subprocess>0</Subprocess>
+      <Category>5</Category>
+      <Mode>0</Mode>
+      <Scope>4</Scope>
+      <OnDemand>0</OnDemand>
+      <TriggerOnCreate>0</TriggerOnCreate>
+      <TriggerOnDelete>0</TriggerOnDelete>
+      <AsyncAutodelete>0</AsyncAutodelete>
+      <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+      <StateCode>1</StateCode>
+      <StatusCode>2</StatusCode>
+      <RunAs>1</RunAs>
+      <IsTransacted>1</IsTransacted>
+      <IntroducedVersion>1.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <BusinessProcessType>0</BusinessProcessType>
+      <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+      <ModernFlowType>1</ModernFlowType>
+      <PrimaryEntity>none</PrimaryEntity>
+      <LocalizedNames>
+        <LocalizedName languagecode="1033" description="NEXORA - Get Gate 1 Approval Status" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description languagecode="1033" description="Retrieves a saved Gate 1 approval request and its recorded decision, checking that their identities, reviewer, snapshot, and statuses agree. Does not create requests, record approval, execute searches, or change records." />
+      </Descriptions>
+    </Workflow>
+  </Workflows>
+  <FieldSecurityProfiles></FieldSecurityProfiles>
+  <Templates />
+  <EntityMaps />
+  <EntityRelationships />
+  <OrganizationSettings />
+  <optionsets />
+  <CustomControls />
+  <EntityDataProviders />
+  <connectionreferences>
+    <connectionreference connectionreferencelogicalname="new_sharedapprovals_d272b">
+      <connectionreferencedisplayname>Standard approvals NEXORAIntelligence-d272b</connectionreferencedisplayname>
+      <connectorid>/providers/Microsoft.PowerApps/apis/shared_approvals</connectorid>
+      <iscustomizable>1</iscustomizable>
+      <promptingbehavior>0</promptingbehavior>
+      <statecode>0</statecode>
+      <statuscode>1</statuscode>
+    </connectionreference>
+    <connectionreference connectionreferencelogicalname="new_sharedsharepointonline_4711d">
+      <connectionreferencedisplayname>SharePoint</connectionreferencedisplayname>
+      <connectorid>/providers/Microsoft.PowerApps/apis/shared_sharepointonline</connectorid>
+      <iscustomizable>1</iscustomizable>
+      <promptingbehavior>0</promptingbehavior>
+      <statecode>0</statecode>
+      <statuscode>1</statuscode>
+    </connectionreference>
+    <connectionreference connectionreferencelogicalname="new_sharedsharepointonline_8e0f8">
+      <connectionreferencedisplayname>SharePoint NEXORAIntelligence-8e0f8</connectionreferencedisplayname>
+      <connectorid>/providers/Microsoft.PowerApps/apis/shared_sharepointonline</connectorid>
+      <iscustomizable>1</iscustomizable>
+      <promptingbehavior>0</promptingbehavior>
+      <statecode>0</statecode>
+      <statuscode>1</statuscode>
+    </connectionreference>
+  </connectionreferences>
+  <Languages>
+    <Language>1033</Language>
+  </Languages>
+</ImportExportXml>

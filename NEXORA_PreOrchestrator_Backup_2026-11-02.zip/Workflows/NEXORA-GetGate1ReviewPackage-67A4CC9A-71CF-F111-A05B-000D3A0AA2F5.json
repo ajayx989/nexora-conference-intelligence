@@ -1,0 +1,626 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_4711d"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "description": "Exact DiscoveryRunID whose saved discovery evidence should be retrieved for Gate 1 review.",
+                  "title": "DiscoveryRunID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "required": [
+                "text"
+              ]
+            }
+          },
+          "metadata": {
+            "operationMetadataId": "b8f61c18-7224-4f8a-9c5f-72fbce5df764"
+          }
+        }
+      },
+      "actions": {
+        "Respond_to_the_agent": {
+          "type": "Response",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "gate1reviewresult": {
+                  "title": "Gate1ReviewResult",
+                  "description": "",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "additionalProperties": {}
+            },
+            "statusCode": 200,
+            "body": {
+              "gate1reviewresult": "@{variables('Gate1ReviewResult')}"
+            }
+          },
+          "runAfter": {
+            "Condition": [
+              "SUCCEEDED",
+              "TIMEDOUT",
+              "SKIPPED",
+              "FAILED"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "81c94f73-dd52-465c-ad3b-a4686da63cc3"
+          }
+        },
+        "LookupDiscoveryRun": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "2944f657-eb00-4751-bb03-afc58448d9aa",
+              "$filter": "DiscoveryRunID eq '@{triggerBody()?['text']}'",
+              "$top": 2
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "operationId": "GetItems",
+              "connectionName": "shared_sharepointonline"
+            }
+          },
+          "runAfter": {
+            "Initialize_variable_2": [
+              "SUCCEEDED"
+            ]
+          }
+        },
+        "Initialize_variable": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "Gate1ReviewResult",
+                "type": "string",
+                "value": "NOT_COMPLETED: The Gate 1 review package has not been assembled. No approval was recorded."
+              }
+            ]
+          },
+          "runAfter": {}
+        },
+        "Condition": {
+          "type": "If",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@length(body('LookupDiscoveryRun')?['value'])",
+                  1
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "GetRunQueries": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                  "table": "c88470c1-cd6d-4599-9a8c-025938e989b0",
+                  "$filter": "DiscoveryRunID eq '@{triggerBody()?['text']}'"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "operationId": "GetItems",
+                  "connectionName": "shared_sharepointonline"
+                }
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            },
+            "GetRunObservations": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                  "table": "1d3e1f9f-c804-4b59-8af9-6ffaa5d40e37",
+                  "$filter": "DiscoveryRunID eq '@{triggerBody()?['text']}'"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "operationId": "GetItems",
+                  "connectionName": "shared_sharepointonline"
+                }
+              },
+              "runAfter": {
+                "GetRunQueries": [
+                  "SUCCEEDED"
+                ]
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            },
+            "Condition_1": {
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@and(\r\n  less(length(body('GetRunQueries')?['value']), 5000),\r\n  less(length(body('GetRunObservations')?['value']), 5000),\r\n  less(length(body('GetGate1ExtractedLeads')?['value']), 5000),\r\n  less(length(body('GetGate1DuplicatePairs')?['value']),5000)\r\n)",
+                      "@true"
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "FilterLinkedObservations": {
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@body('GetRunObservations')?['value']",
+                    "where": "@equals(empty(trim(coalesce(item()?['CandidateID'], ''))),false)"
+                  }
+                },
+                "SelectCandidateIDs": {
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@body('FilterLinkedObservations')",
+                    "select": {
+                      "CandidateID": "@trim(item()?['CandidateID'])"
+                    }
+                  },
+                  "runAfter": {
+                    "FilterLinkedObservations": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "DistinctCandidateIDs": {
+                  "type": "Compose",
+                  "inputs": "@union(\r\n  body('SelectCandidateIDs'),\r\n  body('SelectGate1ExtractedCandidateIDs')\r\n)",
+                  "runAfter": {
+                    "SelectGate1ExtractedCandidateIDs": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "ForEachCandidateID": {
+                  "type": "Foreach",
+                  "foreach": "@outputs('DistinctCandidateIDs')",
+                  "actions": {
+                    "LookupCandidate": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                          "table": "0bf9a020-1964-4bc0-9655-3987c0d61861",
+                          "$filter": "@concat(\r\n  'CandidateID eq ''',\r\n  items('ForEachCandidateID')?['CandidateID'],\r\n  ''''\r\n)",
+                          "$top": 2
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "operationId": "GetItems",
+                          "connectionName": "shared_sharepointonline"
+                        }
+                      }
+                    },
+                    "Condition_2": {
+                      "type": "If",
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@length(body('LookupCandidate')?['value'])",
+                              1
+                            ]
+                          }
+                        ]
+                      },
+                      "actions": {
+                        "Append_to_array_variable": {
+                          "type": "AppendToArrayVariable",
+                          "inputs": {
+                            "name": "CandidateReviewRows",
+                            "value": "@first(body('LookupCandidate')?['value'])"
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Append_to_array_variable_1": {
+                            "type": "AppendToArrayVariable",
+                            "inputs": {
+                              "name": "CandidateLookupIssues",
+                              "value": "@concat(\r\n  if(\r\n    equals(length(body('LookupCandidate')?['value']), 0),\r\n    'MISSING_CANDIDATE: ',\r\n    'DUPLICATE_CANDIDATE_ID: '\r\n  ),\r\n  items('ForEachCandidateID')?['CandidateID'],\r\n  '. Referenced by this run but could not be resolved to exactly one saved candidate.'\r\n)"
+                            }
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "LookupCandidate": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "DistinctCandidateIDs": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "SelectCandidateReviewRows": {
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@variables('CandidateReviewRows')",
+                    "select": {
+                      "CandidateID": "@item()?['CandidateID']",
+                      "CandidateNameRaw": "@item()?['CandidateNameRaw']",
+                      "CanonicalURL": "@item()?['CanonicalURL']",
+                      "CandidateKind": "@coalesce(item()?['CandidateKind']?['Value'], 'UNKNOWN')",
+                      "Stage1Status": "@item()?['Stage1Status']?['Value']",
+                      "ProcessingNotes": "@item()?['ProcessingNotes']"
+                    }
+                  },
+                  "runAfter": {
+                    "ForEachCandidateID": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "SelectQueryReviewRows": {
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@body('GetRunQueries')?['value']",
+                    "select": {
+                      "QueryRunID": "@item()?['QueryRunID']",
+                      "QueryPackKey": "@item()?['QueryPackKey']",
+                      "QueryText": "@item()?['QueryText']",
+                      "ProviderName": "@item()?['ProviderName']",
+                      "QueryStatus": "@item()?['QueryStatus']?['Value']",
+                      "AttemptCount": "@coalesce(item()?['AttemptCount'], 0)",
+                      "ResultCount": "@item()?['ResultCount']",
+                      "IngestedCount": "@coalesce(item()?['IngestedCount'], 0)",
+                      "ErrorMessage": "@item()?['ErrorMessage']"
+                    }
+                  },
+                  "runAfter": {
+                    "SelectCandidateReviewRows": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "SelectObservationReviewRows": {
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@body('GetRunObservations')?['value']",
+                    "select": {
+                      "ObservationID": "@item()?['ObservationID']",
+                      "QueryRunID": "@item()?['QueryRunID']",
+                      "QueryPackKey": "@item()?['QueryPackKey']",
+                      "CandidateID": "@item()?['CandidateID']",
+                      "TitleRaw": "@item()?['TitleRaw']",
+                      "ResultURL": "@item()?['ResultURL']",
+                      "Snippet": "@item()?['Snippet']",
+                      "ProviderName": "@item()?['ProviderName']",
+                      "RetrievedAt": "@item()?['RetrievedAt']",
+                      "IngestionStatus": "@item()?['IngestionStatus']?['Value']",
+                      "ProvisionalSourceClass": "@item()?['ProvisionalSourceClass']?['Value']",
+                      "ProcessingNotes": "@item()?['ProcessingNotes']"
+                    }
+                  },
+                  "runAfter": {
+                    "SelectQueryReviewRows": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "SelectRunReviewRow": {
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@body('LookupDiscoveryRun')?['value']",
+                    "select": {
+                      "DiscoveryRunID": "@item()?['DiscoveryRunID']",
+                      "Title": "@item()?['Title']",
+                      "RunStatus": "@item()?['RunStatus']?['Value']",
+                      "ScopeVersion": "@item()?['ScopeVersion']",
+                      "PlannedQueryCount": "@item()?['PlannedQueryCount']",
+                      "SavedExecutedQueryCount": "@item()?['ExecutedQueryCount']",
+                      "SavedObservationCount": "@item()?['ObservationCount']",
+                      "SavedCandidateCount": "@item()?['CandidateCount']",
+                      "SavedErrorCount": "@item()?['ErrorCount']",
+                      "Notes": "@item()?['Notes']"
+                    }
+                  },
+                  "runAfter": {
+                    "SelectObservationReviewRows": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "AssembleGate1Package": {
+                  "type": "Compose",
+                  "inputs": "@setProperty(\r\n  setProperty(\r\n    setProperty(\r\n      setProperty(\r\n        setProperty(\r\n          setProperty(\r\n            setProperty(\r\n              json('{\"PackageType\":\"GATE1_REVIEW_DRAFT\",\"ApprovalRecorded\":false,\"CoverageComplete\":false}'),\r\n              'Run',\r\n              first(body('SelectRunReviewRow'))\r\n            ),\r\n            'Queries',\r\n            body('SelectQueryReviewRows')\r\n          ),\r\n          'Observations',\r\n          body('SelectObservationReviewRows')\r\n        ),\r\n        'CandidateLeads',\r\n        body('SelectCandidateReviewRows')\r\n      ),\r\n      'CandidateLookupIssues',\r\n      variables('CandidateLookupIssues')\r\n    ),\r\n    'ExtractedEventLeads',\r\n    body('SelectGate1ExtractedLeadRows')\r\n  ),\r\n  'PossibleDuplicatePairs',\r\n  body('SelectGate1DuplicatePairRows')\r\n)",
+                  "runAfter": {
+                    "SelectGate1DuplicatePairRows": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "Condition_3": {
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      {
+                        "less": [
+                          "@length(string(outputs('AssembleGate1Package')))",
+                          120000
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Set_variable_2": {
+                      "type": "SetVariable",
+                      "inputs": {
+                        "name": "Gate1ReviewResult",
+                        "value": "@string(outputs('AssembleGate1Package'))"
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Set_variable_3": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "Gate1ReviewResult",
+                          "value": "GATE1_PACKAGE_TOO_LARGE: The assembled evidence exceeds the pilot response-size limit. The package was not returned. Use paged retrieval or a saved report to review the full evidence. No approval was recorded and discovery completion was not confirmed."
+                        }
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "AssembleGate1Package": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "FilterGate1LinkedExtractedLeads": {
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@body('GetGate1ExtractedLeads')?['value']",
+                    "where": "@and(\r\n  equals(item()?['LeadStatus']?['Value'], 'LINKED'),\r\n  not(empty(trim(coalesce(item()?['CandidateID'], ''))))\r\n)"
+                  },
+                  "runAfter": {
+                    "SelectCandidateIDs": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "SelectGate1ExtractedCandidateIDs": {
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@body('FilterGate1LinkedExtractedLeads')",
+                    "select": {
+                      "CandidateID": "@trim(item()?['CandidateID'])"
+                    }
+                  },
+                  "runAfter": {
+                    "FilterGate1LinkedExtractedLeads": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "SelectGate1ExtractedLeadRows": {
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@body('GetGate1ExtractedLeads')?['value']",
+                    "select": {
+                      "ExtractedLeadID": "@item()?['ExtractedLeadID']",
+                      "ParentCandidateID": "@item()?['ParentCandidateID']",
+                      "SourceRetrievalID": "@item()?['SourceRetrievalID']",
+                      "EventNameRaw": "@item()?['EventNameRaw']",
+                      "EventURL": "@item()?['EventURL']",
+                      "EvidenceExcerpt": "@item()?['EvidenceExcerpt']",
+                      "RawClaims": "@item()?['RawClaims']",
+                      "LeadStatus": "@item()?['LeadStatus']?['Value']",
+                      "CandidateID": "@item()?['CandidateID']",
+                      "ExtractionNotes": "@item()?['ExtractionNotes']",
+                      "ExtractedAt": "@item()?['ExtractedAt']"
+                    }
+                  },
+                  "runAfter": {
+                    "SelectRunReviewRow": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "SelectGate1DuplicatePairRows": {
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@body('GetGate1DuplicatePairs')?['value']",
+                    "select": {
+                      "DuplicatePairID": "@item()?['DuplicatePairID']",
+                      "DiscoveryRunID": "@item()?['DiscoveryRunID']",
+                      "CandidateAID": "@item()?['CandidateAID']",
+                      "CandidateBID": "@item()?['CandidateBID']",
+                      "DuplicateRationale": "@item()?['DuplicateRationale']",
+                      "ReviewStatus": "@item()?['ReviewStatus']?['Value']",
+                      "CreatedAt": "@item()?['Created']"
+                    }
+                  },
+                  "runAfter": {
+                    "SelectGate1ExtractedLeadRows": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Set_variable_1": {
+                    "type": "SetVariable",
+                    "inputs": {
+                      "name": "Gate1ReviewResult",
+                      "value": "RETRIEVAL_LIMIT_REACHED: Query, observation, extracted-lead, or duplicate-pair retrieval reached the configured limit. No complete Gate 1 package was returned because retrieved records may be incomplete."
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "GetGate1DuplicatePairs": [
+                  "SUCCEEDED"
+                ]
+              }
+            },
+            "GetGate1ExtractedLeads": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                  "table": "d6e470cf-bb83-4f34-82fa-b0e4a9a67da2",
+                  "$filter": "@concat(\r\n  'DiscoveryRunID eq ''',\r\n  replace(triggerBody()?['text'], '''', ''''''),\r\n  ''''\r\n)",
+                  "$top": 5000
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "operationId": "GetItems",
+                  "connectionName": "shared_sharepointonline"
+                }
+              },
+              "runAfter": {
+                "GetRunObservations": [
+                  "SUCCEEDED"
+                ]
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            },
+            "GetGate1DuplicatePairs": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                  "table": "46ad3d6a-8137-4b42-833f-cbb4a303f7fd",
+                  "$filter": "@concat(\r\n  'DiscoveryRunID eq ''',\r\n  replace(trim(triggerBody()?['text']),'''',''''''),\r\n  ''''\r\n)",
+                  "$top": 5000
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "operationId": "GetItems",
+                  "connectionName": "shared_sharepointonline"
+                }
+              },
+              "runAfter": {
+                "GetGate1ExtractedLeads": [
+                  "SUCCEEDED"
+                ]
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Set_variable": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "Gate1ReviewResult",
+                  "value": "@if(\r\n  equals(length(body('LookupDiscoveryRun')?['value']), 0),\r\n  'NOT_FOUND: No discovery run matches the supplied DiscoveryRunID. No Gate 1 review package was assembled and no approval was recorded.',\r\n  'DUPLICATE_DISCOVERY_RUN_ID: Multiple discovery runs match the supplied DiscoveryRunID. Resolve the duplicate records before assembling a Gate 1 review package. No approval was recorded.'\r\n)"
+                }
+              }
+            }
+          },
+          "runAfter": {
+            "LookupDiscoveryRun": [
+              "SUCCEEDED"
+            ]
+          }
+        },
+        "Initialize_variable_1": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "CandidateReviewRows",
+                "type": "array",
+                "value": "@json('[]')"
+              }
+            ]
+          },
+          "runAfter": {
+            "Initialize_variable": [
+              "SUCCEEDED"
+            ]
+          }
+        },
+        "Initialize_variable_2": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "CandidateLookupIssues",
+                "type": "array",
+                "value": "@json('[]')"
+              }
+            ]
+          },
+          "runAfter": {
+            "Initialize_variable_1": [
+              "SUCCEEDED"
+            ]
+          }
+        }
+      },
+      "outputs": {},
+      "description": "When an agent calls the flow and send back a response.",
+      "metadata": {
+        "defaultToEmbeddedConnections": true
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

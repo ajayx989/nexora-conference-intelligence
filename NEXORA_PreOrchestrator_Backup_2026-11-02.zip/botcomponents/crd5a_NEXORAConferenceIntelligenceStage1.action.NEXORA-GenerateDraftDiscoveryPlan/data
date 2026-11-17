@@ -1,0 +1,33 @@
+kind: TaskDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: text_5
+
+  - kind: AutomaticTaskInput
+    propertyName: text_6
+
+  - kind: AutomaticTaskInput
+    propertyName: text_7
+
+modelDescription: |-
+  Creates DRAFT plans for an existing PAUSED run. Requires DiscoveryRunID, new PlanVersion, TargetYear, 1–10 semicolon-separated QueryPackKeys, and TargetGeography. PlanningNotes optional.
+
+  Optional EventStartDate and EventEndDate must both be supplied as YYYY-MM-DD within TargetYear, with end on or after start; otherwise omit both.
+
+  Packs must be enabled, use TAVILY_API, match geography, and have SPECIFIC year mode with {{YEAR}} templates. Expands {{YEAR}} and appends supplied event dates. Dates guide search; they do not enforce filtering or verify event facts.
+
+  Saves DRAFT items with reserved QueryRunIDs and MaxResults 5. Does not request approval, execute searches, change run status, or update PlannedQueryCount.
+
+  Never invent pack keys or automatically retry with another version after blocked or uncertain outcomes. Confirm creation only for DRAFT_PLAN_CREATED, then retrieve the saved plan for review.
+outputs:
+  - propertyName: draftdiscoveryplanresult
+
+action:
+  kind: InvokeFlowTaskAction
+  flowId: f2a30dd6-bcd2-f111-a05b-002248d5b537
+  connectionProperties:
+    $kind: ConnectionProperties
+    diagnostics:
+    mode: Invoker
+
+outputMode: All

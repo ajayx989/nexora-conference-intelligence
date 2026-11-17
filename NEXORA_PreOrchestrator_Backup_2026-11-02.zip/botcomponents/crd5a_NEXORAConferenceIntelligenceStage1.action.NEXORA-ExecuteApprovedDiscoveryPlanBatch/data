@@ -1,0 +1,13 @@
+kind: TaskDialog
+outputs:
+  - propertyName: planbatchexecutionresult
+
+action:
+  kind: InvokeFlowTaskAction
+  flowId: 5baf2a58-2ad1-f111-a05b-000d3a0aa2f5
+  connectionProperties:
+    $kind: ConnectionProperties
+    diagnostics:
+    mode: Invoker
+
+outputMode: All

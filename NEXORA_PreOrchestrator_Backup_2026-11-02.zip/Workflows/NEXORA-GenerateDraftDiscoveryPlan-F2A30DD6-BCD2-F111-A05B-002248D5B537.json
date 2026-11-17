@@ -1,0 +1,719 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_4711d"
+        },
+        "api": {
+          "name": "shared_sharepointonline"
+        }
+      }
+    },
+    "definition": {
+      "metadata": {
+        "defaultToEmbeddedConnections": true
+      },
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "metadata": {
+            "operationMetadataId": "b8f61c18-7224-4f8a-9c5f-72fbce5df764"
+          },
+          "type": "Request",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "description": "Exact saved discovery run ID.",
+                  "title": "DiscoveryRunID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_1": {
+                  "description": "New plan version to create. Existing items for this run/version block creation.",
+                  "title": "PlanVersion",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_2": {
+                  "description": "Four-digit target year, for example 2027. Replaces the supported {{YEAR}} placeholder.",
+                  "title": "TargetYear",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_3": {
+                  "description": "Exact selected query-pack keys, separated by semicolons. Example: QP-002-v1.0;QP-003-v1.0",
+                  "title": "QueryPackKeys",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_4": {
+                  "description": "Exact geography code that selected packs must match, for example UK_PRIMARY.",
+                  "title": "TargetGeography",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_5": {
+                  "description": "Original discovery request and any planning limitations. Does not override saved query templates.",
+                  "title": "PlanningNotes",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_6": {
+                  "description": "Optional inclusive start of the requested event-date window, formatted YYYY-MM-DD. Supply together with EventEndDate. These are event dates, not webpage publication dates.",
+                  "title": "EventStartDate",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_7": {
+                  "description": "Optional inclusive end of the requested event-date window, formatted YYYY-MM-DD. Supply together with EventStartDate. Must be on or after EventStartDate.",
+                  "title": "EventEndDate",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "required": [
+                "text",
+                "text_1",
+                "text_2",
+                "text_3",
+                "text_4"
+              ]
+            }
+          }
+        }
+      },
+      "actions": {
+        "Respond_to_the_agent": {
+          "runAfter": {
+            "DraftPlanRunFound": [
+              "Succeeded",
+              "TimedOut",
+              "Skipped",
+              "Failed"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "81c94f73-dd52-465c-ad3b-a4686da63cc3"
+          },
+          "type": "Response",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "draftdiscoveryplanresult": {
+                  "title": "DraftDiscoveryPlanResult",
+                  "description": "",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "additionalProperties": {}
+            },
+            "statusCode": 200,
+            "body": {
+              "draftdiscoveryplanresult": "@{variables('DraftDiscoveryPlanResult')}"
+            }
+          }
+        },
+        "Initialize_variable": {
+          "runAfter": {},
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "DraftDiscoveryPlanResult",
+                "type": "string",
+                "value": "NOT_COMPLETED: Draft plan generation has not reached a confirmed outcome. Some plan items may have been saved if processing started. Inspect the supplied run and plan version before retrying. No approval or search execution is confirmed."
+              }
+            ]
+          }
+        },
+        "LookupDraftPlanRun": {
+          "runAfter": {
+            "ValidateEventDateWindow": [
+              "Succeeded",
+              "TimedOut",
+              "Skipped",
+              "Failed"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "2944f657-eb00-4751-bb03-afc58448d9aa",
+              "$filter": "@concat('DiscoveryRunID eq ''', replace(trim(triggerBody()?['text']), '''', ''''''), '''')",
+              "$top": 2
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "operationId": "GetItems",
+              "connectionName": "shared_sharepointonline"
+            }
+          }
+        },
+        "DraftPlanRunFound": {
+          "actions": {
+            "DraftPlanRunIsPaused": {
+              "actions": {
+                "LookupExistingDraftPlan": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                      "table": "2fb96fa4-a56c-458e-816c-dbc7efb8aa2b",
+                      "$filter": "@concat(\r\n  'DiscoveryRunID eq ''',\r\n  replace(trim(triggerBody()?['text']), '''', ''''''),\r\n  ''' and PlanVersion eq ''',\r\n  replace(trim(triggerBody()?['text_1']), '''', ''''''),\r\n  ''''\r\n)",
+                      "$top": 1
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "operationId": "GetItems",
+                      "connectionName": "shared_sharepointonline"
+                    }
+                  }
+                },
+                "DraftPlanVersionAvailable": {
+                  "actions": {
+                    "DraftPlanInputsValid": {
+                      "actions": {
+                        "DraftPlanYearInRange": {
+                          "actions": {
+                            "SelectRequestedQueryPackKeys": {
+                              "type": "Select",
+                              "inputs": {
+                                "from": "@split(triggerBody()?['text_3'],';')",
+                                "select": {
+                                  "QueryPackKey": "@trim(item())"
+                                }
+                              }
+                            },
+                            "FilterBlankQueryPackKeys": {
+                              "runAfter": {
+                                "SelectRequestedQueryPackKeys": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "Query",
+                              "inputs": {
+                                "from": "@body('SelectRequestedQueryPackKeys')",
+                                "where": "@equals(item()?['QueryPackKey'],'')"
+                              }
+                            },
+                            "RequestedQueryPackKeysValid": {
+                              "actions": {
+                                "ValidateRequestedQueryPacks": {
+                                  "foreach": "@body('SelectRequestedQueryPackKeys')",
+                                  "actions": {
+                                    "LookupRequestedQueryPack": {
+                                      "type": "OpenApiConnection",
+                                      "inputs": {
+                                        "parameters": {
+                                          "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                          "table": "d6c949a9-d1f0-4a24-b45c-ba0d4aaa1b7a",
+                                          "$filter": "@concat(\r\n  'QueryPackKey eq ''',\r\n  replace(item()?['QueryPackKey'],'''',''''''),\r\n  ''''\r\n)",
+                                          "$top": 2
+                                        },
+                                        "host": {
+                                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                          "operationId": "GetItems",
+                                          "connectionName": "shared_sharepointonline"
+                                        }
+                                      }
+                                    },
+                                    "RequestedQueryPackUsable": {
+                                      "actions": {
+                                        "Append_to_array_variable": {
+                                          "type": "AppendToArrayVariable",
+                                          "inputs": {
+                                            "name": "PreparedQueryPacks",
+                                            "value": "@first(body('LookupRequestedQueryPack')?['value'])"
+                                          }
+                                        }
+                                      },
+                                      "runAfter": {
+                                        "LookupRequestedQueryPack": [
+                                          "Succeeded"
+                                        ]
+                                      },
+                                      "else": {
+                                        "actions": {
+                                          "Append_to_array_variable_1": {
+                                            "type": "AppendToArrayVariable",
+                                            "inputs": {
+                                              "name": "InvalidQueryPackKeys",
+                                              "value": "@items('ValidateRequestedQueryPacks')?['QueryPackKey']"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "expression": {
+                                        "and": [
+                                          {
+                                            "equals": [
+                                              "@if(\r\n  equals(length(body('LookupRequestedQueryPack')?['value']),1),\r\n  and(\r\n    equals(\r\n      first(body('LookupRequestedQueryPack')?['value'])?['IsEnabled'],\r\n      true\r\n    ),\r\n    equals(\r\n      first(body('LookupRequestedQueryPack')?['value'])?['ProviderPreference'],\r\n      'TAVILY_API'\r\n    ),\r\n    equals(\r\n      first(body('LookupRequestedQueryPack')?['value'])?['TargetGeography'],\r\n      trim(triggerBody()?['text_4'])\r\n    ),\r\n    equals(\r\n      first(body('LookupRequestedQueryPack')?['value'])?['TargetYearMode']?['Value'],\r\n      'SPECIFIC'\r\n    ),\r\n    contains(\r\n      coalesce(\r\n        first(body('LookupRequestedQueryPack')?['value'])?['QueryTemplate'],\r\n        ''\r\n      ),\r\n      '{{YEAR}}'\r\n    ),\r\n    not(\r\n      contains(\r\n        replace(\r\n          coalesce(\r\n            first(body('LookupRequestedQueryPack')?['value'])?['QueryTemplate'],\r\n            ''\r\n          ),\r\n          '{{YEAR}}',\r\n          trim(triggerBody()?['text_2'])\r\n        ),\r\n        '{{'\r\n      )\r\n    ),\r\n    not(\r\n      contains(\r\n        replace(\r\n          coalesce(\r\n            first(body('LookupRequestedQueryPack')?['value'])?['QueryTemplate'],\r\n            ''\r\n          ),\r\n          '{{YEAR}}',\r\n          trim(triggerBody()?['text_2'])\r\n        ),\r\n        '}}'\r\n      )\r\n    ),\r\n    lessOrEquals(\r\n      length(\r\n        coalesce(\r\n          first(body('LookupRequestedQueryPack')?['value'])?['QueryTemplate'],\r\n          ''\r\n        )\r\n      ),\r\n      2000\r\n    ),\r\n    lessOrEquals(\r\n      length(\r\n        concat(\r\n          'PLAN|',\r\n          first(body('LookupDraftPlanRun')?['value'])?['DiscoveryRunID'],\r\n          '|',\r\n          trim(triggerBody()?['text_1']),\r\n          '|',\r\n          items('ValidateRequestedQueryPacks')?['QueryPackKey']\r\n        )\r\n      ),\r\n      255\r\n    )\r\n  ),\r\n  false\r\n)",
+                                              "@true"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "type": "If"
+                                    }
+                                  },
+                                  "type": "Foreach"
+                                },
+                                "AllRequestedQueryPacksValidated": {
+                                  "actions": {
+                                    "CreateDraftPlanItems": {
+                                      "foreach": "@variables('PreparedQueryPacks')",
+                                      "actions": {
+                                        "ExpandedDraftQuery": {
+                                          "type": "Compose",
+                                          "inputs": "@concat(\r\n  trim(\r\n    replace(\r\n      items('CreateDraftPlanItems')?['QueryTemplate'],\r\n      '{{YEAR}}',\r\n      trim(triggerBody()?['text_2'])\r\n    )\r\n  ),\r\n  if(\r\n    empty(outputs('RequestedEventStartDate')),\r\n    '',\r\n    concat(\r\n      ' events taking place between ',\r\n      outputs('RequestedEventStartDate'),\r\n      ' and ',\r\n      outputs('RequestedEventEndDate'),\r\n      ' inclusive'\r\n    )\r\n  )\r\n)"
+                                        },
+                                        "SaveDraftPlanItem": {
+                                          "runAfter": {
+                                            "ExpandedDraftQuery": [
+                                              "Succeeded"
+                                            ]
+                                          },
+                                          "type": "OpenApiConnection",
+                                          "inputs": {
+                                            "parameters": {
+                                              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                              "table": "2fb96fa4-a56c-458e-816c-dbc7efb8aa2b",
+                                              "item/PlanItemID": "@concat(\r\n  'PLAN|',\r\n  first(body('LookupDraftPlanRun')?['value'])?['DiscoveryRunID'],\r\n  '|',\r\n  trim(triggerBody()?['text_1']),\r\n  '|',\r\n  items('CreateDraftPlanItems')?['QueryPackKey']\r\n)",
+                                              "item/DiscoveryRunID": "@first(body('LookupDraftPlanRun')?['value'])?['DiscoveryRunID']",
+                                              "item/QueryPackKey": "@items('CreateDraftPlanItems')?['QueryPackKey']",
+                                              "item/QueryText": "@outputs('ExpandedDraftQuery')",
+                                              "item/QueryRunID": "@concat('QR-',guid())",
+                                              "item/PlanVersion": "@trim(triggerBody()?['text_1'])",
+                                              "item/ScopeVersion": "@first(body('LookupDraftPlanRun')?['value'])?['ScopeVersion']",
+                                              "item/ProviderName": "TAVILY_API",
+                                              "item/MaxResults": 5,
+                                              "item/Title": "@items('CreateDraftPlanItems')?['QueryPackKey']",
+                                              "item/PlanStatus/Value": "DRAFT",
+                                              "item/PlanNotes": "@concat(\r\n  'Generated from saved query pack ',\r\n  items('CreateDraftPlanItems')?['QueryPackKey'],\r\n  '. TargetYear: ',\r\n  trim(triggerBody()?['text_2']),\r\n  '; TargetGeography: ',\r\n  trim(triggerBody()?['text_4']),\r\n  '; EventDateWindow: ',\r\n  if(\r\n    empty(outputs('RequestedEventStartDate')),\r\n    'not specified',\r\n    concat(\r\n      outputs('RequestedEventStartDate'),\r\n      ' through ',\r\n      outputs('RequestedEventEndDate'),\r\n      ' inclusive'\r\n    )\r\n  ),\r\n  '. The {{YEAR}} placeholder was expanded and an event-date phrase was appended when supplied. ',\r\n  'The date phrase guides search; it does not enforce provider filtering or verify event dates. ',\r\n  'Draft only: no approval or search execution was performed. ',\r\n  'Planning notes: ',\r\n  coalesce(triggerBody()?['text_5'],'')\r\n)"
+                                            },
+                                            "host": {
+                                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                              "operationId": "PostItem",
+                                              "connectionName": "shared_sharepointonline"
+                                            },
+                                            "retryPolicy": {
+                                              "type": "none"
+                                            }
+                                          }
+                                        },
+                                        "Increment_variable": {
+                                          "runAfter": {
+                                            "SaveDraftPlanItem": [
+                                              "Succeeded"
+                                            ]
+                                          },
+                                          "type": "IncrementVariable",
+                                          "inputs": {
+                                            "name": "SavedDraftPlanItemCount",
+                                            "value": 1
+                                          }
+                                        }
+                                      },
+                                      "type": "Foreach"
+                                    },
+                                    "Set_variable_7": {
+                                      "runAfter": {
+                                        "CreateDraftPlanItems": [
+                                          "Succeeded"
+                                        ]
+                                      },
+                                      "type": "SetVariable",
+                                      "inputs": {
+                                        "name": "DraftDiscoveryPlanResult",
+                                        "value": "@concat(\r\n  'DRAFT_PLAN_CREATED: Saved ',\r\n  string(variables('SavedDraftPlanItemCount')),\r\n  ' DRAFT plan items for DiscoveryRunID ',\r\n  first(body('LookupDraftPlanRun')?['value'])?['DiscoveryRunID'],\r\n  ', PlanVersion ',\r\n  trim(triggerBody()?['text_1']),\r\n  ', TargetYear ',\r\n  trim(triggerBody()?['text_2']),\r\n  ', TargetGeography ',\r\n  trim(triggerBody()?['text_4']),\r\n  ', EventDateWindow: ',\r\n  if(\r\n    empty(outputs('RequestedEventStartDate')),\r\n    'not specified',\r\n    concat(\r\n      outputs('RequestedEventStartDate'),\r\n      ' through ',\r\n      outputs('RequestedEventEndDate'),\r\n      ' inclusive'\r\n    )\r\n  ),\r\n  '. QueryRunIDs were reserved in the saved plan items. ',\r\n  'Retrieve this plan version to review the exact queries before requesting approval. ',\r\n  'An appended date phrase guides search but does not enforce provider filtering or verify event dates. ',\r\n  'No approval was requested and no searches were executed. ',\r\n  'Run status and run-level PlannedQueryCount were not changed. ',\r\n  'Overall discovery completion is not confirmed.'\r\n)"
+                                      }
+                                    }
+                                  },
+                                  "runAfter": {
+                                    "ValidateRequestedQueryPacks": [
+                                      "Succeeded"
+                                    ]
+                                  },
+                                  "else": {
+                                    "actions": {
+                                      "Set_variable_6": {
+                                        "type": "SetVariable",
+                                        "inputs": {
+                                          "name": "DraftDiscoveryPlanResult",
+                                          "value": "@concat(\r\n  'BLOCKED_QUERY_PACKS: These query pack keys failed validation: ',\r\n  join(variables('InvalidQueryPackKeys'),'; '),\r\n  '. Each selected key must match exactly one enabled TAVILY_API pack for the requested geography, with TargetYearMode SPECIFIC and a supported {{YEAR}} template. Identifier length limits also apply. No plan items were created.'\r\n)"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "expression": {
+                                    "and": [
+                                      {
+                                        "equals": [
+                                          "@and(\r\n  equals(length(variables('InvalidQueryPackKeys')),0),\r\n  equals(\r\n    length(variables('PreparedQueryPacks')),\r\n    length(body('SelectRequestedQueryPackKeys'))\r\n  )\r\n)",
+                                          "@true"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "type": "If"
+                                }
+                              },
+                              "runAfter": {
+                                "FilterBlankQueryPackKeys": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "else": {
+                                "actions": {
+                                  "Set_variable_5": {
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                      "name": "DraftDiscoveryPlanResult",
+                                      "value": "INVALID_QUERY_PACK_SELECTION: Supply 1 to 10 distinct query pack keys separated by semicolons, without empty entries. PlanningNotes must not exceed 10000 characters. No plan items were created."
+                                    }
+                                  }
+                                }
+                              },
+                              "expression": {
+                                "and": [
+                                  {
+                                    "equals": [
+                                      "@and(\r\n  equals(length(body('FilterBlankQueryPackKeys')),0),\r\n  greater(length(body('SelectRequestedQueryPackKeys')),0),\r\n  lessOrEquals(length(body('SelectRequestedQueryPackKeys')),10),\r\n  equals(\r\n    length(\r\n      union(\r\n        body('SelectRequestedQueryPackKeys'),\r\n        body('SelectRequestedQueryPackKeys')\r\n      )\r\n    ),\r\n    length(body('SelectRequestedQueryPackKeys'))\r\n  ),\r\n  lessOrEquals(\r\n    length(coalesce(triggerBody()?['text_5'],'')),\r\n    10000\r\n  )\r\n)",
+                                      "@true"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "type": "If"
+                            }
+                          },
+                          "else": {
+                            "actions": {
+                              "Set_variable_4": {
+                                "type": "SetVariable",
+                                "inputs": {
+                                  "name": "DraftDiscoveryPlanResult",
+                                  "value": "INVALID_TARGET_YEAR: TargetYear must be between 2000 and 2100. No plan items were created."
+                                }
+                              }
+                            }
+                          },
+                          "expression": {
+                            "and": [
+                              {
+                                "equals": [
+                                  "@and(\r\n  greaterOrEquals(int(trim(triggerBody()?['text_2'])),2000),\r\n  lessOrEquals(int(trim(triggerBody()?['text_2'])),2100)\r\n)",
+                                  "@true"
+                                ]
+                              }
+                            ]
+                          },
+                          "type": "If"
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Set_variable_3": {
+                            "type": "SetVariable",
+                            "inputs": {
+                              "name": "DraftDiscoveryPlanResult",
+                              "value": "INVALID_PLAN_INPUTS: Supply a nonblank PlanVersion of at most 100 characters, a four-digit TargetYear, QueryPackKeys, and TargetGeography. The saved run must have a ScopeVersion. EventStartDate and EventEndDate must either both be blank or both be valid YYYY-MM-DD dates within TargetYear, with the end on or after the start. No plan items were created."
+                            }
+                          }
+                        }
+                      },
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@and(\r\n  equals(variables('EventDateWindowValid'),true),\r\n  not(empty(trim(coalesce(triggerBody()?['text_1'],'')))),\r\n  lessOrEquals(length(trim(coalesce(triggerBody()?['text_1'],''))),100),\r\n  equals(length(trim(coalesce(triggerBody()?['text_2'],''))),4),\r\n  isInt(trim(coalesce(triggerBody()?['text_2'],''))),\r\n  not(empty(trim(coalesce(triggerBody()?['text_3'],'')))),\r\n  not(empty(trim(coalesce(triggerBody()?['text_4'],'')))),\r\n  not(empty(first(body('LookupDraftPlanRun')?['value'])?['ScopeVersion']))\r\n)",
+                              "@true"
+                            ]
+                          }
+                        ]
+                      },
+                      "type": "If"
+                    }
+                  },
+                  "runAfter": {
+                    "LookupExistingDraftPlan": [
+                      "Succeeded"
+                    ]
+                  },
+                  "else": {
+                    "actions": {
+                      "Set_variable_2": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "DraftDiscoveryPlanResult",
+                          "value": "PLAN_VERSION_EXISTS: Saved plan items already exist for this run and plan version. No new items were created. Inspect the existing plan before proceeding; do not automatically retry with another version."
+                        }
+                      }
+                    }
+                  },
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@length(body('LookupExistingDraftPlan')?['value'])",
+                          "@0"
+                        ]
+                      }
+                    ]
+                  },
+                  "type": "If"
+                }
+              },
+              "else": {
+                "actions": {
+                  "Set_variable_1": {
+                    "type": "SetVariable",
+                    "inputs": {
+                      "name": "DraftDiscoveryPlanResult",
+                      "value": "BLOCKED_RUN_STATUS: Draft plan generation requires a PAUSED discovery run. No plan items were created and run status was not changed."
+                    }
+                  }
+                }
+              },
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@first(body('LookupDraftPlanRun')?['value'])?['RunStatus']?['Value']",
+                      "PAUSED"
+                    ]
+                  }
+                ]
+              },
+              "type": "If"
+            }
+          },
+          "runAfter": {
+            "LookupDraftPlanRun": [
+              "Succeeded"
+            ]
+          },
+          "else": {
+            "actions": {
+              "Set_variable": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "DraftDiscoveryPlanResult",
+                  "value": "@if(\r\n  equals(length(body('LookupDraftPlanRun')?['value']),0),\r\n  'NOT_FOUND: No discovery run matches the supplied DiscoveryRunID. No draft plan items were created.',\r\n  'DUPLICATE_RUN_ID: Multiple discovery runs match the supplied DiscoveryRunID. No draft plan items were created. Resolve the duplicate records before proceeding.'\r\n)"
+                }
+              }
+            }
+          },
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@length(body('LookupDraftPlanRun')?['value'])",
+                  "@1"
+                ]
+              }
+            ]
+          },
+          "type": "If"
+        },
+        "Initialize_variable_1": {
+          "runAfter": {
+            "Initialize_variable": [
+              "Succeeded"
+            ]
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "PreparedQueryPacks",
+                "type": "array",
+                "value": "@json('[]')"
+              }
+            ]
+          }
+        },
+        "Initialize_variable_2": {
+          "runAfter": {
+            "Initialize_variable_1": [
+              "Succeeded"
+            ]
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "InvalidQueryPackKeys",
+                "type": "array",
+                "value": "@json('[]')"
+              }
+            ]
+          }
+        },
+        "Initialize_variable_3": {
+          "runAfter": {
+            "Initialize_variable_2": [
+              "Succeeded"
+            ]
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "SavedDraftPlanItemCount",
+                "type": "integer",
+                "value": "@0"
+              }
+            ]
+          }
+        },
+        "Initialize_variable_4": {
+          "runAfter": {
+            "Initialize_variable_3": [
+              "Succeeded"
+            ]
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "EventDateWindowValid",
+                "type": "boolean",
+                "value": false
+              }
+            ]
+          }
+        },
+        "RequestedEventStartDate": {
+          "runAfter": {
+            "Initialize_variable_4": [
+              "Succeeded"
+            ]
+          },
+          "type": "Compose",
+          "inputs": "@trim(coalesce(triggerBody()?['text_6'],''))"
+        },
+        "RequestedEventEndDate": {
+          "runAfter": {
+            "RequestedEventStartDate": [
+              "Succeeded"
+            ]
+          },
+          "type": "Compose",
+          "inputs": "@trim(coalesce(triggerBody()?['text_7'],''))"
+        },
+        "ValidateEventDateWindow": {
+          "actions": {
+            "EventDateWindowOmitted": {
+              "actions": {
+                "Set_variable_8": {
+                  "type": "SetVariable",
+                  "inputs": {
+                    "name": "EventDateWindowValid",
+                    "value": true
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "EventDateInputsHaveExpectedShape": {
+                    "actions": {
+                      "NormalizedEventStartDate": {
+                        "type": "Compose",
+                        "inputs": "@formatDateTime(outputs('RequestedEventStartDate'),'yyyy-MM-dd')"
+                      },
+                      "NormalizedEventEndDate": {
+                        "runAfter": {
+                          "NormalizedEventStartDate": [
+                            "Succeeded"
+                          ]
+                        },
+                        "type": "Compose",
+                        "inputs": "@formatDateTime(outputs('RequestedEventEndDate'),'yyyy-MM-dd')"
+                      },
+                      "Set_variable_9": {
+                        "runAfter": {
+                          "NormalizedEventEndDate": [
+                            "Succeeded"
+                          ]
+                        },
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "EventDateWindowValid",
+                          "value": "@and(\r\n  equals(\r\n    outputs('RequestedEventStartDate'),\r\n    outputs('NormalizedEventStartDate')\r\n  ),\r\n  equals(\r\n    outputs('RequestedEventEndDate'),\r\n    outputs('NormalizedEventEndDate')\r\n  ),\r\n  lessOrEquals(\r\n    ticks(outputs('NormalizedEventStartDate')),\r\n    ticks(outputs('NormalizedEventEndDate'))\r\n  ),\r\n  equals(\r\n    formatDateTime(outputs('NormalizedEventStartDate'),'yyyy'),\r\n    trim(triggerBody()?['text_2'])\r\n  ),\r\n  equals(\r\n    formatDateTime(outputs('NormalizedEventEndDate'),'yyyy'),\r\n    trim(triggerBody()?['text_2'])\r\n  )\r\n)"
+                        }
+                      }
+                    },
+                    "else": {
+                      "actions": {}
+                    },
+                    "expression": {
+                      "and": [
+                        {
+                          "equals": [
+                            "@and(\r\n  equals(length(outputs('RequestedEventStartDate')),10),\r\n  equals(length(outputs('RequestedEventEndDate')),10),\r\n  equals(length(split(outputs('RequestedEventStartDate'),'-')),3),\r\n  equals(length(split(outputs('RequestedEventEndDate'),'-')),3),\r\n  isInt(replace(outputs('RequestedEventStartDate'),'-','')),\r\n  isInt(replace(outputs('RequestedEventEndDate'),'-',''))\r\n)",
+                            "@true"
+                          ]
+                        }
+                      ]
+                    },
+                    "type": "If"
+                  }
+                }
+              },
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@and(\r\n  empty(outputs('RequestedEventStartDate')),\r\n  empty(outputs('RequestedEventEndDate'))\r\n)",
+                      "@true"
+                    ]
+                  }
+                ]
+              },
+              "type": "If"
+            }
+          },
+          "runAfter": {
+            "RequestedEventEndDate": [
+              "Succeeded"
+            ]
+          },
+          "type": "Scope"
+        }
+      },
+      "outputs": {}
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

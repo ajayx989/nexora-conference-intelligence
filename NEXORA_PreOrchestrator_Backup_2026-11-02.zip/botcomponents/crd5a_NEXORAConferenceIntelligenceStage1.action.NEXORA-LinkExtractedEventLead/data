@@ -1,0 +1,25 @@
+kind: TaskDialog
+modelDescription: |-
+  Links one explicitly requested saved extracted event lead to an event candidate. Requires exact DiscoveryRunID and ExtractedLeadID. Never invent or substitute IDs.
+
+  The lead must belong to the supplied run, have NEW status, and have no CandidateID. Its completed source retrieval and saved supporting excerpt must pass validation.
+
+  Reuses one existing candidate with the same exact URL, or creates a provisional EVENT_LEAD candidate if no match exists. Multiple matches block linking. Exact-URL matching does not resolve cross-URL duplicates or establish event identity.
+
+  Report success only for EXTRACTED_LEAD_LINKED. BLOCKED_LEAD_LINK may indicate an existing link or another failed readiness check; do not claim successful linking from that response.
+
+  Do not retry automatically after an error or uncertain outcome. Inspect saved records first because candidate creation may have completed before linking failed.
+
+  This tool does not execute searches, verify event facts, approve Gate 1, or confirm discovery completion.
+outputs:
+  - propertyName: extractedleadlinkresult
+
+action:
+  kind: InvokeFlowTaskAction
+  flowId: 387d027f-dad1-f111-a05b-000d3a0aa2f5
+  connectionProperties:
+    $kind: ConnectionProperties
+    diagnostics:
+    mode: Invoker
+
+outputMode: All

@@ -1,0 +1,412 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_4711d"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "description": "Exact discovery run whose plan is being submitted for approval.",
+                  "title": "DiscoveryRunID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_1": {
+                  "description": "Exact saved plan version to submit for approval.",
+                  "title": "PlanVersion",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_2": {
+                  "description": "Unique request identifier supplied for this submission; preserve it when checking an uncertain outcome.",
+                  "title": "ApprovalRequestID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "required": [
+                "text",
+                "text_1",
+                "text_2"
+              ]
+            }
+          },
+          "metadata": {
+            "operationMetadataId": "b8f61c18-7224-4f8a-9c5f-72fbce5df764"
+          }
+        }
+      },
+      "actions": {
+        "Respond_to_the_agent": {
+          "type": "Response",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "planapprovalrequestresult": {
+                  "title": "PlanApprovalRequestResult",
+                  "description": "",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "additionalProperties": {}
+            },
+            "statusCode": 200,
+            "body": {
+              "planapprovalrequestresult": "@{variables('PlanApprovalRequestResult')}"
+            }
+          },
+          "runAfter": {
+            "Condition": [
+              "SUCCEEDED"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "81c94f73-dd52-465c-ad3b-a4686da63cc3"
+          }
+        },
+        "Initialize_variable": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "PlanApprovalRequestResult",
+                "type": "string",
+                "value": "NOT_COMPLETED: Approval-request submission has not reached a confirmed outcome. Check the supplied ApprovalRequestID before retrying. No approval or search execution is confirmed."
+              }
+            ]
+          },
+          "runAfter": {}
+        },
+        "LookupApprovalRequest": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "b5aba1ab-263a-4a28-97bb-b97e8c32525d",
+              "$filter": "ApprovalRequestID eq '@{triggerBody()?['text_2']}'",
+              "$top": 2
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "operationId": "GetItems",
+              "connectionName": "shared_sharepointonline"
+            }
+          },
+          "runAfter": {
+            "Initialize_variable": [
+              "SUCCEEDED"
+            ]
+          }
+        },
+        "Condition": {
+          "type": "If",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@length(body('LookupApprovalRequest')?['value'])",
+                  0
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "LookupDiscoveryRun": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                  "table": "2944f657-eb00-4751-bb03-afc58448d9aa",
+                  "$filter": "DiscoveryRunID eq '@{triggerBody()?['text']}'",
+                  "$top": 2
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "operationId": "GetItems",
+                  "connectionName": "shared_sharepointonline"
+                }
+              }
+            },
+            "Condition_1": {
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@length(body('LookupDiscoveryRun')?['value'])",
+                      1
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "GetPlanItems": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                      "table": "2fb96fa4-a56c-458e-816c-dbc7efb8aa2b",
+                      "$filter": "DiscoveryRunID eq '@{triggerBody()?['text']}' and PlanVersion eq '@{triggerBody()?['text_1']}'"
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "operationId": "GetItems",
+                      "connectionName": "shared_sharepointonline"
+                    }
+                  },
+                  "runtimeConfiguration": {
+                    "paginationPolicy": {
+                      "minimumItemCount": 5000
+                    }
+                  }
+                },
+                "Condition_2": {
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@and(\r\n  greater(length(body('GetPlanItems')?['value']), 0),\r\n  lessOrEquals(length(body('GetPlanItems')?['value']), 50)\r\n)",
+                          "@true"
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "FilterInvalidPlanItems": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@body('GetPlanItems')?['value']",
+                        "where": "@equals(or(\r\n  not(equals(item()?['PlanStatus']?['Value'], 'DRAFT')),\r\n  not(equals(item()?['ScopeVersion'], first(body('LookupDiscoveryRun')?['value'])?['ScopeVersion'])),\r\n  not(equals(item()?['ProviderName'], 'TAVILY_API')),\r\n  not(equals(item()?['MaxResults'], 5)),\r\n  empty(trim(coalesce(item()?['QueryText'], ''))),\r\n  contains(coalesce(item()?['QueryText'], ''), '{{'),\r\n  empty(trim(coalesce(item()?['PlanItemID'], ''))),\r\n  empty(trim(coalesce(item()?['QueryRunID'], ''))),\r\n  empty(trim(coalesce(item()?['QueryPackKey'], ''))),\r\n  not(empty(item()?['ApprovedAt'])),\r\n  not(empty(item()?['ApprovedBy'])),\r\n  not(empty(item()?['ExecutionStartedAt'])),\r\n  not(empty(item()?['ExecutionCompletedAt']))\r\n),true)"
+                      }
+                    },
+                    "Condition_3": {
+                      "type": "If",
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@length(body('FilterInvalidPlanItems'))",
+                              0
+                            ]
+                          }
+                        ]
+                      },
+                      "actions": {
+                        "SelectApprovalSnapshotRows": {
+                          "type": "Select",
+                          "inputs": {
+                            "from": "@body('GetPlanItems')?['value']",
+                            "select": {
+                              "PlanItemID": "@item()?['PlanItemID']",
+                              "DiscoveryRunID": "@item()?['DiscoveryRunID']",
+                              "PlanVersion": "@item()?['PlanVersion']",
+                              "ScopeVersion": "@item()?['ScopeVersion']",
+                              "QueryPackKey": "@item()?['QueryPackKey']",
+                              "QueryText": "@item()?['QueryText']",
+                              "QueryRunID": "@item()?['QueryRunID']",
+                              "ProviderName": "@item()?['ProviderName']",
+                              "MaxResults": "@item()?['MaxResults']"
+                            }
+                          }
+                        },
+                        "ApprovalPlanSnapshot": {
+                          "type": "Compose",
+                          "inputs": "@setProperty(\r\n  setProperty(\r\n    json('{\"SnapshotType\":\"DISCOVERY_PLAN_EXECUTION_APPROVAL\",\"SnapshotSchemaVersion\":\"1.0\",\"ExecutionAuthorized\":false}'),\r\n    'PlanItems',\r\n    body('SelectApprovalSnapshotRows')\r\n  ),\r\n  'PlanItemCount',\r\n  length(body('SelectApprovalSnapshotRows'))\r\n)",
+                          "runAfter": {
+                            "SelectApprovalSnapshotRows": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        },
+                        "Condition_4": {
+                          "type": "If",
+                          "expression": {
+                            "and": [
+                              {
+                                "less": [
+                                  "@length(string(outputs('ApprovalPlanSnapshot')))",
+                                  20000
+                                ]
+                              }
+                            ]
+                          },
+                          "actions": {
+                            "AssignedReviewerEmail": {
+                              "type": "Compose",
+                              "inputs": "ajay.20231006@mnnit.ac.in"
+                            },
+                            "CreateApprovalRequest": {
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                  "table": "b5aba1ab-263a-4a28-97bb-b97e8c32525d",
+                                  "item/ApprovalRequestID": "@triggerBody()?['text_2']",
+                                  "item/DiscoveryRunID": "@triggerBody()?['text']",
+                                  "item/PlanVersion": "@triggerBody()?['text_1']",
+                                  "item/PlanSnapshot": "@string(outputs('ApprovalPlanSnapshot'))",
+                                  "item/Title": "@triggerBody()?['text_2']",
+                                  "item/RequestStatus/Value": "QUEUED",
+                                  "item/AssignedReviewer/Claims": "@concat(\r\n  'i:0#.f|membership|',\r\n  outputs('AssignedReviewerEmail')\r\n)",
+                                  "item/ProcessingMessage": "Request saved for background processing. Human review has not yet been sent or completed. No searches executed."
+                                },
+                                "host": {
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                  "operationId": "PostItem",
+                                  "connectionName": "shared_sharepointonline"
+                                }
+                              },
+                              "runAfter": {
+                                "AssignedReviewerEmail": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            },
+                            "Set_variable_5": {
+                              "type": "SetVariable",
+                              "inputs": {
+                                "name": "PlanApprovalRequestResult",
+                                "value": "APPROVAL_REQUEST_QUEUED: The approval-request record was saved in QUEUED status for background processing. This response does not confirm that human review has been sent or completed. No searches were executed."
+                              },
+                              "runAfter": {
+                                "CreateApprovalRequest": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {
+                              "Set_variable_4": {
+                                "type": "SetVariable",
+                                "inputs": {
+                                  "name": "PlanApprovalRequestResult",
+                                  "value": "APPROVAL_SNAPSHOT_TOO_LARGE: The plan snapshot exceeds the pilot limit of 20000 characters. Split the plan into smaller explicitly versioned review batches. No approval request was created, no approval was recorded, and no searches were executed."
+                                }
+                              }
+                            }
+                          },
+                          "runAfter": {
+                            "ApprovalPlanSnapshot": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Set_variable_3": {
+                            "type": "SetVariable",
+                            "inputs": {
+                              "name": "PlanApprovalRequestResult",
+                              "value": "PLAN_VALIDATION_FAILED: One or more plan items are not eligible for a new approval request. Every item must be DRAFT, match the run's ScopeVersion, use TAVILY_API with MaxResults 5, and contain nonempty plan, query, and pack identifiers plus resolved QueryText. Approval and execution fields must be blank. Review the saved plan and correct or version it before resubmitting. No approval request was created."
+                            }
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "FilterInvalidPlanItems": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Set_variable_2": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "PlanApprovalRequestResult",
+                          "value": "@if(\r\n  equals(length(body('GetPlanItems')?['value']), 0),\r\n  'PLAN_NOT_FOUND: No saved plan items match the supplied DiscoveryRunID and PlanVersion. No approval request was created.',\r\n  'PLAN_APPROVAL_LIMIT_EXCEEDED: The plan contains more than the pilot limit of 50 items. Split it into explicitly versioned review batches before requesting approval. No approval request was created.'\r\n)"
+                        }
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "GetPlanItems": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Set_variable_1": {
+                    "type": "SetVariable",
+                    "inputs": {
+                      "name": "PlanApprovalRequestResult",
+                      "value": "@if(\r\n  equals(length(body('LookupDiscoveryRun')?['value']), 0),\r\n  'NOT_FOUND: No discovery run matches the supplied DiscoveryRunID. No approval request was created.',\r\n  'DUPLICATE_DISCOVERY_RUN_ID: Multiple discovery runs match the supplied DiscoveryRunID. Resolve the duplicate records before requesting plan approval. No approval request was created.'\r\n)"
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "LookupDiscoveryRun": [
+                  "SUCCEEDED"
+                ]
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Set_variable": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "PlanApprovalRequestResult",
+                  "value": "APPROVAL_REQUEST_ID_EXISTS: A saved request already uses the supplied ApprovalRequestID. No new request was created by this call. Inspect the existing request and confirm its run, plan version, and status before taking further action. Do not automatically retry with a different ID. This result does not establish approval or search execution."
+                }
+              }
+            }
+          },
+          "runAfter": {
+            "LookupApprovalRequest": [
+              "SUCCEEDED"
+            ]
+          }
+        }
+      },
+      "outputs": {},
+      "description": "When an agent calls the flow and send back a response.",
+      "metadata": {
+        "defaultToEmbeddedConnections": true
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

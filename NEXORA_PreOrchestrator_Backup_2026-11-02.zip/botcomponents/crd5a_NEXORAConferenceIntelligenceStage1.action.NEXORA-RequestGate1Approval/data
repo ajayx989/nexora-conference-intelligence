@@ -1,0 +1,21 @@
+kind: TaskDialog
+modelDescription: |-
+  Assembles a Gate 1 review snapshot from saved discovery records and queues it for human review. Requires exact DiscoveryRunID and a reserved unique Gate1ApprovalRequestID.
+
+  Use only when the user explicitly requests Gate 1 review. Never invent or substitute IDs. An existing request ID blocks creation; do not retry automatically with another ID.
+
+  GATE1_APPROVAL_REQUEST_QUEUED confirms only that the request and snapshot were saved. It does not confirm delivery or approval. Use Get Gate 1 Approval Status to check saved decisions.
+
+  Approval applies to the saved snapshot. It does not verify event facts, establish complete coverage, authorize searches, or change run status.
+outputs:
+  - propertyName: gate1approvalrequestresult
+
+action:
+  kind: InvokeFlowTaskAction
+  flowId: 09829de0-37d2-f111-a05b-70a8a599229b
+  connectionProperties:
+    $kind: ConnectionProperties
+    diagnostics:
+    mode: Invoker
+
+outputMode: All

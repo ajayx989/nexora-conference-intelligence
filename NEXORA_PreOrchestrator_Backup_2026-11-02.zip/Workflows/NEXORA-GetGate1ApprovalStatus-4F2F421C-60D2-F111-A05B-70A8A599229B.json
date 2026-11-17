@@ -1,0 +1,307 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_4711d"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "description": "Exact saved Gate 1 approval request ID. Do not generate or substitute an ID.",
+                  "title": "Gate1ApprovalRequestID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "required": [
+                "text"
+              ]
+            }
+          },
+          "metadata": {
+            "operationMetadataId": "b8f61c18-7224-4f8a-9c5f-72fbce5df764"
+          }
+        }
+      },
+      "actions": {
+        "Respond_to_the_agent": {
+          "type": "Response",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "gate1approvalstatusresult": {
+                  "title": "Gate1ApprovalStatusResult",
+                  "description": "",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "additionalProperties": {}
+            },
+            "statusCode": 200,
+            "body": {
+              "gate1approvalstatusresult": "@{variables('Gate1ApprovalStatusResult')}"
+            }
+          },
+          "runAfter": {
+            "Gate1StatusRequestFound": [
+              "SUCCEEDED",
+              "FAILED",
+              "SKIPPED",
+              "TIMEDOUT"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "81c94f73-dd52-465c-ad3b-a4686da63cc3"
+          }
+        },
+        "Initialize_variable": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "Gate1ApprovalStatusResult",
+                "type": "string",
+                "value": "NOT_COMPLETED: Gate 1 approval status could not be reconciled to a confirmed outcome. Approval is not confirmed by this response. No records were changed and no searches were executed."
+              }
+            ]
+          },
+          "runAfter": {}
+        },
+        "LookupGate1StatusRequest": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "8962af14-aead-4908-a0e8-588dfce0f952",
+              "$filter": "@concat(\r\n  'Gate1ApprovalRequestID eq ''',\r\n  replace(triggerBody()?['text'], '''', ''''''),\r\n  ''''\r\n)",
+              "$top": 2
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "operationId": "GetItems",
+              "connectionName": "shared_sharepointonline"
+            }
+          },
+          "runAfter": {
+            "Initialize_variable": [
+              "SUCCEEDED"
+            ]
+          }
+        },
+        "Gate1StatusRequestFound": {
+          "type": "If",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@length(body('LookupGate1StatusRequest')?['value'])",
+                  "@1"
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "LookupGate1StatusDecision": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                  "table": "701e2328-932c-493e-b37e-08c34b4fdf59",
+                  "$filter": "@concat(\r\n  'Gate1ApprovalRequestID eq ''',\r\n  replace(triggerBody()?['text'], '''', ''''''),\r\n  ''''\r\n)",
+                  "$top": 2
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "operationId": "GetItems",
+                  "connectionName": "shared_sharepointonline"
+                }
+              }
+            },
+            "Gate1DecisionLookupUnambiguous": {
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "lessOrEquals": [
+                      "@length(body('LookupGate1StatusDecision')?['value'])",
+                      "@1"
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "SelectGate1StatusRequest": {
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@body('LookupGate1StatusRequest')?['value']",
+                    "select": {
+                      "Gate1ApprovalRequestID": "@item()?['Gate1ApprovalRequestID']",
+                      "DiscoveryRunID": "@item()?['DiscoveryRunID']",
+                      "ScopeVersion": "@item()?['ScopeVersion']",
+                      "RequestStatus": "@item()?['RequestStatus']?['Value']",
+                      "AssignedReviewerEmail": "@item()?['AssignedReviewer']?['Email']",
+                      "ProviderApprovalID": "@item()?['ProviderApprovalID']",
+                      "ReviewRequestedAt": "@item()?['ReviewRequestedAt']",
+                      "CompletedAt": "@item()?['CompletedAt']",
+                      "ProcessingMessage": "@item()?['ProcessingMessage']"
+                    }
+                  }
+                },
+                "SelectGate1StatusDecisions": {
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@body('LookupGate1StatusDecision')?['value']",
+                    "select": {
+                      "Gate1ApprovalID": "@item()?['Gate1ApprovalID']",
+                      "Gate1ApprovalRequestID": "@item()?['Gate1ApprovalRequestID']",
+                      "DiscoveryRunID": "@item()?['DiscoveryRunID']",
+                      "ScopeVersion": "@item()?['ScopeVersion']",
+                      "Decision": "@item()?['Decision']?['Value']",
+                      "DecisionAt": "@item()?['DecisionAt']",
+                      "DecisionByEmail": "@item()?['DecisionBy']?['Email']",
+                      "DecisionComments": "@item()?['DecisionComments']"
+                    }
+                  },
+                  "runAfter": {
+                    "SelectGate1StatusRequest": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "FilterMismatchedGate1Decisions": {
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@body('LookupGate1StatusDecision')?['value']",
+                    "where": "@not(\r\n  and(\r\n    equals(\r\n      item()?['Gate1ApprovalRequestID'],\r\n      first(body('LookupGate1StatusRequest')?['value'])?['Gate1ApprovalRequestID']\r\n    ),\r\n    equals(\r\n      item()?['DiscoveryRunID'],\r\n      first(body('LookupGate1StatusRequest')?['value'])?['DiscoveryRunID']\r\n    ),\r\n    equals(\r\n      item()?['ScopeVersion'],\r\n      first(body('LookupGate1StatusRequest')?['value'])?['ScopeVersion']\r\n    ),\r\n    not(empty(item()?['ReviewSnapshot'])),\r\n    equals(\r\n      item()?['ReviewSnapshot'],\r\n      first(body('LookupGate1StatusRequest')?['value'])?['ReviewSnapshot']\r\n    ),\r\n    contains(\r\n      createArray('APPROVED', 'REJECTED'),\r\n      item()?['Decision']?['Value']\r\n    ),\r\n    not(empty(item()?['DecisionAt'])),\r\n    not(empty(item()?['DecisionBy']?['Email'])),\r\n    equals(\r\n      toLower(coalesce(item()?['DecisionBy']?['Email'], '')),\r\n      toLower(coalesce(\r\n        first(body('LookupGate1StatusRequest')?['value'])?['AssignedReviewer']?['Email'],\r\n        ''\r\n      ))\r\n    )\r\n  )\r\n)"
+                  },
+                  "runAfter": {
+                    "SelectGate1StatusDecisions": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "Gate1StatusRecordsConsistent": {
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@and(\r\n  equals(length(body('FilterMismatchedGate1Decisions')), 0),\r\n  if(\r\n    equals(length(body('LookupGate1StatusDecision')?['value']), 1),\r\n    equals(\r\n      first(body('LookupGate1StatusRequest')?['value'])?['RequestStatus']?['Value'],\r\n      first(body('LookupGate1StatusDecision')?['value'])?['Decision']?['Value']\r\n    ),\r\n    not(\r\n      contains(\r\n        createArray('APPROVED', 'REJECTED'),\r\n        first(body('LookupGate1StatusRequest')?['value'])?['RequestStatus']?['Value']\r\n      )\r\n    )\r\n  )\r\n)",
+                          "@true"
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "AssembleGate1ApprovalStatus": {
+                      "type": "Compose",
+                      "inputs": "@setProperty(\r\n  setProperty(\r\n    setProperty(\r\n      setProperty(\r\n        json('{\"PackageType\":\"GATE1_APPROVAL_STATUS\",\"RecordsConsistent\":true,\"ApprovalAppliesTo\":\"SAVED_REVIEW_SNAPSHOT_ONLY\",\"CurrentRunRevalidated\":false,\"CoverageCompletionEstablished\":false,\"EventFactsVerified\":false,\"SearchExecutionPerformed\":false,\"RecordsChanged\":false}'),\r\n        'Request',\r\n        first(body('SelectGate1StatusRequest'))\r\n      ),\r\n      'Decisions',\r\n      body('SelectGate1StatusDecisions')\r\n    ),\r\n    'DecisionCount',\r\n    length(body('LookupGate1StatusDecision')?['value'])\r\n  ),\r\n  'Gate1ApprovalConfirmed',\r\n  and(\r\n    equals(length(body('LookupGate1StatusDecision')?['value']), 1),\r\n    equals(\r\n      first(body('LookupGate1StatusRequest')?['value'])?['RequestStatus']?['Value'],\r\n      'APPROVED'\r\n    )\r\n  )\r\n)"
+                    },
+                    "Set_variable_3": {
+                      "type": "SetVariable",
+                      "inputs": {
+                        "name": "Gate1ApprovalStatusResult",
+                        "value": "@string(outputs('AssembleGate1ApprovalStatus'))"
+                      },
+                      "runAfter": {
+                        "AssembleGate1ApprovalStatus": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Set_variable_2": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "Gate1ApprovalStatusResult",
+                          "value": "GATE1_APPROVAL_RECORDS_INCONSISTENT: The saved request and decision could not be reconciled. A decision may be missing or conflict with the request status, identity, scope, reviewer, timestamp, or snapshot. Gate 1 approval is not confirmed. Inspect the records and background flow history. No records were changed and no searches were executed."
+                        }
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "FilterMismatchedGate1Decisions": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Set_variable_1": {
+                    "type": "SetVariable",
+                    "inputs": {
+                      "name": "Gate1ApprovalStatusResult",
+                      "value": "DUPLICATE_GATE1_DECISIONS: Multiple decisions match the supplied Gate1ApprovalRequestID. Approval is not confirmed. Inspect the saved decision records. No records were changed."
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "LookupGate1StatusDecision": [
+                  "SUCCEEDED"
+                ]
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Set_variable": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "Gate1ApprovalStatusResult",
+                  "value": "@if(\r\n  equals(length(body('LookupGate1StatusRequest')?['value']), 0),\r\n  'NOT_FOUND: No Gate 1 approval request matches the supplied Gate1ApprovalRequestID. No records were changed.',\r\n  'DUPLICATE_GATE1_REQUEST_ID: Multiple requests match the supplied Gate1ApprovalRequestID. Approval is not confirmed. No records were changed.'\r\n)"
+                }
+              }
+            }
+          },
+          "runAfter": {
+            "LookupGate1StatusRequest": [
+              "SUCCEEDED"
+            ]
+          }
+        }
+      },
+      "outputs": {},
+      "description": "When an agent calls the flow and send back a response.",
+      "metadata": {
+        "defaultToEmbeddedConnections": true
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

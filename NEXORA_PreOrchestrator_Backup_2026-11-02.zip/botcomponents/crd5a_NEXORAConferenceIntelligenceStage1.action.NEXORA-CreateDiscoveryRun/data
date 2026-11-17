@@ -1,0 +1,34 @@
+kind: TaskDialog
+response:
+  activity:
+  mode: Generated
+
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: text
+    description: A short title for the new discovery run. Use the user's supplied title exactly. If no title is supplied, create a concise descriptive title from their request, no longer than 200 characters.
+
+  - kind: AutomaticTaskInput
+    propertyName: text_1
+    description: Preserve the user's discovery request, including stated topics, geography, years, and restrictions. Do not invent preferences or imply that searches have started. These notes do not override the approved discovery scope.
+
+modelDescription: |-
+  Creates one persisted discovery run in PAUSED status. Requires RunTitle, RequestNotes, and an explicit ScopeVersion. Title must be nonblank and at most 255 characters; notes nonblank and at most 10000; scope nonblank and at most 100.
+
+  Saves the supplied scope and original request, generates DiscoveryRunID, and initializes counters to zero. Does not generate plans, request approvals, execute searches, or change existing runs.
+
+  Never substitute TEST-v1 or invent a missing scope. Confirm creation only when Message begins RUN_CREATED and DiscoveryRunID is nonblank. For invalid or uncertain outcomes, report the result without automatic retry.
+outputs:
+  - propertyName: discoveryrunid
+
+  - propertyName: message
+
+action:
+  kind: InvokeFlowTaskAction
+  flowId: 12f369bb-3ace-f111-a05a-000d3af215be
+  connectionProperties:
+    $kind: ConnectionProperties
+    diagnostics:
+    mode: Invoker
+
+outputMode: All

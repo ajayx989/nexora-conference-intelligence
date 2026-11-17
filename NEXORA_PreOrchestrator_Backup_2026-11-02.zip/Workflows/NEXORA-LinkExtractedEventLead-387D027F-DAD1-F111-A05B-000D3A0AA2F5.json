@@ -1,0 +1,508 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_4711d"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "description": "Exact saved discovery run ID associated with the extracted lead.",
+                  "title": "DiscoveryRunID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_1": {
+                  "description": "Exact saved extracted lead ID to link. Do not generate or substitute an ID.",
+                  "title": "ExtractedLeadID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "required": [
+                "text",
+                "text_1"
+              ]
+            }
+          },
+          "metadata": {
+            "operationMetadataId": "b8f61c18-7224-4f8a-9c5f-72fbce5df764"
+          }
+        }
+      },
+      "actions": {
+        "Respond_to_the_agent": {
+          "type": "Response",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "extractedleadlinkresult": {
+                  "title": "ExtractedLeadLinkResult",
+                  "description": "",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "additionalProperties": {}
+            },
+            "statusCode": 200,
+            "body": {
+              "extractedleadlinkresult": "@{variables('ExtractedLeadLinkResult')}"
+            }
+          },
+          "runAfter": {
+            "ExtractedLeadToLinkFound": [
+              "SUCCEEDED",
+              "TIMEDOUT",
+              "SKIPPED",
+              "FAILED"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "81c94f73-dd52-465c-ad3b-a4686da63cc3"
+          }
+        },
+        "Initialize_variable": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "ExtractedLeadLinkResult",
+                "type": "string",
+                "value": "NOT_COMPLETED: Extracted lead linking has not reached a confirmed outcome. A candidate or link may have been saved if processing started. Inspect the extracted lead, candidate records, and flow history before retrying."
+              }
+            ]
+          },
+          "runAfter": {}
+        },
+        "LookupExtractedLeadToLink": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "d6e470cf-bb83-4f34-82fa-b0e4a9a67da2",
+              "$filter": "@concat(\r\n  'ExtractedLeadID eq ''',\r\n  replace(triggerBody()?['text_1'], '''', ''''''),\r\n  ''''\r\n)",
+              "$top": 2
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "operationId": "GetItems",
+              "connectionName": "shared_sharepointonline"
+            }
+          },
+          "runAfter": {
+            "Initialize_variable_1": [
+              "SUCCEEDED"
+            ]
+          }
+        },
+        "ExtractedLeadToLinkFound": {
+          "type": "If",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@length(body('LookupExtractedLeadToLink')?['value'])",
+                  "@1"
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "ExtractedLeadReadyToLink": {
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@and(\r\n  equals(\r\n    first(body('LookupExtractedLeadToLink')?['value'])?['DiscoveryRunID'],\r\n    triggerBody()?['text']\r\n  ),\r\n  equals(\r\n    first(body('LookupExtractedLeadToLink')?['value'])?['LeadStatus']?['Value'],\r\n    'NEW'\r\n  ),\r\n  empty(\r\n    first(body('LookupExtractedLeadToLink')?['value'])?['CandidateID']\r\n  ),\r\n  not(empty(trim(coalesce(\r\n    first(body('LookupExtractedLeadToLink')?['value'])?['EventURL'],\r\n    ''\r\n  ))))\r\n)",
+                      "@true"
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "LookupExtractedLeadRun": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                      "table": "2944f657-eb00-4751-bb03-afc58448d9aa",
+                      "$filter": "@concat(\r\n  'DiscoveryRunID eq ''',\r\n  replace(triggerBody()?['text'], '''', ''''''),\r\n  ''''\r\n)",
+                      "$top": 2
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "operationId": "GetItems",
+                      "connectionName": "shared_sharepointonline"
+                    }
+                  }
+                },
+                "ExtractedLeadRunFound": {
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@length(body('LookupExtractedLeadRun')?['value'])",
+                          "@1"
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "LookupLinkSourceRetrieval": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                          "table": "a91c3930-8a2d-4cbd-8f4b-e585a99939c1",
+                          "$filter": "@concat(\r\n  'SourceRetrievalID eq ''',\r\n  replace(\r\n    first(body('LookupExtractedLeadToLink')?['value'])?['SourceRetrievalID'],\r\n    '''',\r\n    ''''''\r\n  ),\r\n  ''''\r\n)",
+                          "$top": 2
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "operationId": "GetItems",
+                          "connectionName": "shared_sharepointonline"
+                        }
+                      }
+                    },
+                    "LinkSourceEvidenceValid": {
+                      "type": "If",
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@if(\r\n  equals(length(body('LookupLinkSourceRetrieval')?['value']), 1),\r\n  and(\r\n    equals(\r\n      first(body('LookupLinkSourceRetrieval')?['value'])?['RetrievalStatus']?['Value'],\r\n      'COMPLETE'\r\n    ),\r\n    equals(\r\n      first(body('LookupLinkSourceRetrieval')?['value'])?['DiscoveryRunID'],\r\n      triggerBody()?['text']\r\n    ),\r\n    equals(\r\n      first(body('LookupLinkSourceRetrieval')?['value'])?['CandidateID'],\r\n      first(body('LookupExtractedLeadToLink')?['value'])?['ParentCandidateID']\r\n    ),\r\n    not(empty(trim(coalesce(\r\n      first(body('LookupExtractedLeadToLink')?['value'])?['EvidenceExcerpt'],\r\n      ''\r\n    )))),\r\n    contains(\r\n      coalesce(first(body('LookupLinkSourceRetrieval')?['value'])?['RetrievedContent'], ''),\r\n      first(body('LookupExtractedLeadToLink')?['value'])?['EvidenceExcerpt']\r\n    ),\r\n    contains(\r\n      first(body('LookupExtractedLeadToLink')?['value'])?['EvidenceExcerpt'],\r\n      first(body('LookupExtractedLeadToLink')?['value'])?['EventURL']\r\n    )\r\n  ),\r\n  false\r\n)",
+                              "@true"
+                            ]
+                          }
+                        ]
+                      },
+                      "actions": {
+                        "LookupCandidatesForLeadLink": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                              "table": "0bf9a020-1964-4bc0-9655-3987c0d61861",
+                              "$top": 5000
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "operationId": "GetItems",
+                              "connectionName": "shared_sharepointonline"
+                            }
+                          },
+                          "runtimeConfiguration": {
+                            "paginationPolicy": {
+                              "minimumItemCount": 5000
+                            }
+                          }
+                        },
+                        "CandidateLinkLookupWithinLimit": {
+                          "type": "If",
+                          "expression": {
+                            "and": [
+                              {
+                                "less": [
+                                  "@length(body('LookupCandidatesForLeadLink')?['value'])",
+                                  5000
+                                ]
+                              }
+                            ]
+                          },
+                          "actions": {
+                            "MatchCandidateForExtractedLead": {
+                              "type": "Query",
+                              "inputs": {
+                                "from": "@body('LookupCandidatesForLeadLink')?['value']",
+                                "where": "@equals(item()?['CanonicalURL'],first(body('LookupExtractedLeadToLink')?['value'])?['EventURL'])"
+                              }
+                            },
+                            "CandidateURLMatchCount": {
+                              "type": "Switch",
+                              "expression": "@length(body('MatchCandidateForExtractedLead'))",
+                              "default": {
+                                "actions": {
+                                  "Set_variable_5": {
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                      "name": "ExtractedLeadLinkResult",
+                                      "value": "AMBIGUOUS_CANDIDATE_URL: Multiple candidates have the extracted event URL. No candidate or link was changed. Review the duplicate candidates before proceeding."
+                                    }
+                                  }
+                                }
+                              },
+                              "cases": {
+                                "Case": {
+                                  "actions": {
+                                    "Set_variable_7": {
+                                      "type": "SetVariable",
+                                      "inputs": {
+                                        "name": "LinkedEventCandidateID",
+                                        "value": "@concat('CAND-', guid())"
+                                      }
+                                    },
+                                    "CreateCandidateFromExtractedLead": {
+                                      "type": "OpenApiConnection",
+                                      "inputs": {
+                                        "parameters": {
+                                          "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                          "table": "0bf9a020-1964-4bc0-9655-3987c0d61861",
+                                          "item/CanonicalURL": "@first(body('LookupExtractedLeadToLink')?['value'])?['EventURL']",
+                                          "item/FirstDiscoveredAt": "@utcNow()",
+                                          "item/LastDiscoveredAt": "@utcNow()",
+                                          "item/Title": "@first(body('LookupExtractedLeadToLink')?['value'])?['EventNameRaw']",
+                                          "item/CandidateID": "@variables('LinkedEventCandidateID')",
+                                          "item/CandidateNameRaw": "@first(body('LookupExtractedLeadToLink')?['value'])?['EventNameRaw']",
+                                          "item/Stage1Status/Value": "NEW",
+                                          "item/ProcessingNotes": "@concat(\r\n  'Created from extracted event lead ',\r\n  triggerBody()?['text_1'],\r\n  '; discovery run: ',\r\n  triggerBody()?['text'],\r\n  '; parent candidate: ',\r\n  first(body('LookupExtractedLeadToLink')?['value'])?['ParentCandidateID'],\r\n  '; source retrieval: ',\r\n  first(body('LookupExtractedLeadToLink')?['value'])?['SourceRetrievalID'],\r\n  '. The supporting excerpt and raw claims are preserved in NEXORA_ExtractedEventLeads. EVENT_LEAD is a provisional classification. Event identity, dates, location, eligibility, and other claims remain unverified.'\r\n)",
+                                          "item/CandidateKind/Value": "EVENT_LEAD"
+                                        },
+                                        "host": {
+                                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                          "operationId": "PostItem",
+                                          "connectionName": "shared_sharepointonline"
+                                        }
+                                      },
+                                      "runAfter": {
+                                        "Set_variable_7": [
+                                          "SUCCEEDED"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "case": 0
+                                },
+                                "Case 2": {
+                                  "actions": {
+                                    "Set_variable_6": {
+                                      "type": "SetVariable",
+                                      "inputs": {
+                                        "name": "LinkedEventCandidateID",
+                                        "value": "@coalesce(\r\n  first(body('MatchCandidateForExtractedLead'))?['CandidateID'],\r\n  ''\r\n)"
+                                      }
+                                    }
+                                  },
+                                  "case": 1
+                                }
+                              },
+                              "runAfter": {
+                                "MatchCandidateForExtractedLead": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            },
+                            "LinkedCandidateIDReady": {
+                              "type": "If",
+                              "expression": {
+                                "and": [
+                                  {
+                                    "equals": [
+                                      "@not(empty(trim(variables('LinkedEventCandidateID'))))",
+                                      "@true"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "actions": {
+                                "SaveExtractedLeadCandidateLink": {
+                                  "type": "OpenApiConnection",
+                                  "inputs": {
+                                    "parameters": {
+                                      "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                      "table": "d6e470cf-bb83-4f34-82fa-b0e4a9a67da2",
+                                      "id": "@first(body('LookupExtractedLeadToLink')?['value'])?['ID']",
+                                      "item/ExtractedLeadID": "@first(body('LookupExtractedLeadToLink')?['value'])?['ExtractedLeadID']",
+                                      "item/DiscoveryRunID": "@first(body('LookupExtractedLeadToLink')?['value'])?['DiscoveryRunID']",
+                                      "item/ParentCandidateID": "@first(body('LookupExtractedLeadToLink')?['value'])?['ParentCandidateID']",
+                                      "item/SourceRetrievalID": "@first(body('LookupExtractedLeadToLink')?['value'])?['SourceRetrievalID']",
+                                      "item/EventNameRaw": "@first(body('LookupExtractedLeadToLink')?['value'])?['EventNameRaw']",
+                                      "item/EvidenceExcerpt": "@first(body('LookupExtractedLeadToLink')?['value'])?['EvidenceExcerpt']",
+                                      "item/ExtractedAt": "@first(body('LookupExtractedLeadToLink')?['value'])?['ExtractedAt']",
+                                      "item/CandidateID": "@variables('LinkedEventCandidateID')",
+                                      "item/EventURL": "@first(body('LookupExtractedLeadToLink')?['value'])?['EventURL']",
+                                      "item/ExtractionNotes": "@concat(\r\n  coalesce(\r\n    first(body('LookupExtractedLeadToLink')?['value'])?['ExtractionNotes'],\r\n    ''\r\n  ),\r\n  decodeUriComponent('%0A'),\r\n  '[Linked ', utcNow(), '] CandidateID: ',\r\n  variables('LinkedEventCandidateID'),\r\n  '. Candidate selected using exact URL matching. Supporting evidence and raw claims remain unverified. Gate 1 approval and discovery completion are not confirmed.'\r\n)",
+                                      "item/LeadStatus/Value": "LINKED"
+                                    },
+                                    "host": {
+                                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                      "operationId": "PatchItem",
+                                      "connectionName": "shared_sharepointonline"
+                                    }
+                                  }
+                                },
+                                "Set_variable_8": {
+                                  "type": "SetVariable",
+                                  "inputs": {
+                                    "name": "ExtractedLeadLinkResult",
+                                    "value": "@concat(\r\n  'EXTRACTED_LEAD_LINKED: ExtractedLeadID: ',\r\n  triggerBody()?['text_1'],\r\n  '; CandidateID: ',\r\n  variables('LinkedEventCandidateID'),\r\n  '. The extracted lead was saved with LeadStatus LINKED. Event facts, eligibility, Gate 1 approval, and overall discovery completion are not confirmed.'\r\n)"
+                                  },
+                                  "runAfter": {
+                                    "SaveExtractedLeadCandidateLink": [
+                                      "SUCCEEDED"
+                                    ]
+                                  }
+                                }
+                              },
+                              "else": {
+                                "actions": {
+                                  "Set_variable_9": {
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                      "name": "ExtractedLeadLinkResult",
+                                      "value": "@if(\r\n  greater(length(body('MatchCandidateForExtractedLead')), 1),\r\n  'AMBIGUOUS_CANDIDATE_URL: Multiple candidates have the extracted event URL. No candidate or link was changed. Review the duplicate candidates before proceeding.',\r\n  'CANDIDATE_ID_MISSING: No usable candidate ID was selected. No extracted-lead link was saved. Inspect the candidate records and flow history before retrying.'\r\n)"
+                                    }
+                                  }
+                                }
+                              },
+                              "runAfter": {
+                                "CandidateURLMatchCount": [
+                                  "SUCCEEDED"
+                                ]
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {
+                              "Set_variable_4": {
+                                "type": "SetVariable",
+                                "inputs": {
+                                  "name": "ExtractedLeadLinkResult",
+                                  "value": "BLOCKED_CANDIDATE_LOOKUP_LIMIT: Candidate retrieval reached the 5000-record limit, so exact-URL matching may be incomplete. No candidate or link was changed. Review the lookup design before proceeding."
+                                }
+                              }
+                            }
+                          },
+                          "runAfter": {
+                            "LookupCandidatesForLeadLink": [
+                              "SUCCEEDED"
+                            ]
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Set_variable_3": {
+                            "type": "SetVariable",
+                            "inputs": {
+                              "name": "ExtractedLeadLinkResult",
+                              "value": "BLOCKED_LINK_EVIDENCE: Source retrieval identity, completion status, or saved excerpt checks failed. No candidate or link was changed. Inspect the extracted lead and its source evidence."
+                            }
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "LookupLinkSourceRetrieval": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Set_variable_2": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "ExtractedLeadLinkResult",
+                          "value": "@if(\r\n  equals(length(body('LookupExtractedLeadRun')?['value']), 0),\r\n  'RUN_NOT_FOUND: No discovery run matches the supplied DiscoveryRunID. No candidate or link was changed.',\r\n  'DUPLICATE_RUN_ID: Multiple discovery runs match the supplied DiscoveryRunID. No candidate or link was changed.'\r\n)"
+                        }
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "LookupExtractedLeadRun": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Set_variable_1": {
+                    "type": "SetVariable",
+                    "inputs": {
+                      "name": "ExtractedLeadLinkResult",
+                      "value": "BLOCKED_LEAD_LINK: The extracted lead must belong to the supplied run, have NEW status, have no existing CandidateID, and contain an EventURL. No candidate or link was changed. Inspect existing links or non-NEW statuses before proceeding."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Set_variable": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "ExtractedLeadLinkResult",
+                  "value": "@if(\r\n  equals(length(body('LookupExtractedLeadToLink')?['value']), 0),\r\n  'EXTRACTED_LEAD_NOT_FOUND: No extracted lead matches the supplied ExtractedLeadID. No candidate or link was changed.',\r\n  'DUPLICATE_EXTRACTED_LEAD_ID: Multiple extracted leads match the supplied ExtractedLeadID. No candidate or link was changed.'\r\n)"
+                }
+              }
+            }
+          },
+          "runAfter": {
+            "LookupExtractedLeadToLink": [
+              "SUCCEEDED"
+            ]
+          }
+        },
+        "Initialize_variable_1": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "LinkedEventCandidateID",
+                "type": "string"
+              }
+            ]
+          },
+          "runAfter": {
+            "Initialize_variable": [
+              "SUCCEEDED"
+            ]
+          }
+        }
+      },
+      "outputs": {},
+      "description": "When an agent calls the flow and send back a response.",
+      "metadata": {
+        "defaultToEmbeddedConnections": true
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

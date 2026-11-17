@@ -1,0 +1,349 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_4711d"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "description": "Exact discovery run whose saved plan should be retrieved.",
+                  "title": "DiscoveryRunID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_1": {
+                  "description": "Exact plan version to retrieve for this run.",
+                  "title": "PlanVersion",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "required": [
+                "text",
+                "text_1"
+              ]
+            }
+          },
+          "metadata": {
+            "operationMetadataId": "b8f61c18-7224-4f8a-9c5f-72fbce5df764"
+          }
+        }
+      },
+      "actions": {
+        "Respond_to_the_agent": {
+          "type": "Response",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "discoveryplanresult": {
+                  "title": "DiscoveryPlanResult",
+                  "description": "",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "additionalProperties": {}
+            },
+            "statusCode": 200,
+            "body": {
+              "discoveryplanresult": "@{variables('DiscoveryPlanResult')}"
+            }
+          },
+          "runAfter": {
+            "Condition": [
+              "SUCCEEDED",
+              "TIMEDOUT",
+              "SKIPPED",
+              "FAILED"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "81c94f73-dd52-465c-ad3b-a4686da63cc3"
+          }
+        },
+        "Initialize_variable": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "DiscoveryPlanResult",
+                "type": "string",
+                "value": "NOT_COMPLETED: The discovery plan has not been retrieved. No approval or execution was performed."
+              }
+            ]
+          },
+          "runAfter": {}
+        },
+        "LookupDiscoveryRun": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "2944f657-eb00-4751-bb03-afc58448d9aa",
+              "$filter": "DiscoveryRunID eq '@{triggerBody()?['text']}'",
+              "$top": 2
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "operationId": "GetItems",
+              "connectionName": "shared_sharepointonline"
+            }
+          },
+          "runAfter": {
+            "Initialize_variable": [
+              "SUCCEEDED"
+            ]
+          }
+        },
+        "Condition": {
+          "type": "If",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@length(body('LookupDiscoveryRun')?['value'])",
+                  1
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "GetPlanItems": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                  "table": "2fb96fa4-a56c-458e-816c-dbc7efb8aa2b",
+                  "$filter": "DiscoveryRunID eq '@{triggerBody()?['text']}' and PlanVersion eq '@{triggerBody()?['text_1']}'"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "operationId": "GetItems",
+                  "connectionName": "shared_sharepointonline"
+                }
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            },
+            "Condition_1": {
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "less": [
+                      "@length(body('GetPlanItems')?['value'])",
+                      5000
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Condition_2": {
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      {
+                        "greater": [
+                          "@length(body('GetPlanItems')?['value'])",
+                          0
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "SelectPlanReviewRows": {
+                      "type": "Select",
+                      "inputs": {
+                        "from": "@body('GetPlanItems')?['value']",
+                        "select": {
+                          "PlanItemID": "@item()?['PlanItemID']",
+                          "DiscoveryRunID": "@item()?['DiscoveryRunID']",
+                          "PlanVersion": "@item()?['PlanVersion']",
+                          "ScopeVersion": "@item()?['ScopeVersion']",
+                          "QueryPackKey": "@item()?['QueryPackKey']",
+                          "QueryText": "@item()?['QueryText']",
+                          "QueryRunID": "@item()?['QueryRunID']",
+                          "PlanStatus": "@item()?['PlanStatus']?['Value']",
+                          "ProviderName": "@item()?['ProviderName']",
+                          "MaxResults": "@item()?['MaxResults']",
+                          "ApprovedAt": "@item()?['ApprovedAt']",
+                          "ApprovedByEmail": "@item()?['ApprovedBy']?['Email']",
+                          "ExecutionStartedAt": "@item()?['ExecutionStartedAt']",
+                          "ExecutionCompletedAt": "@item()?['ExecutionCompletedAt']",
+                          "ExecutionOutcome": "@item()?['ExecutionOutcome']",
+                          "PlanNotes": "@item()?['PlanNotes']"
+                        }
+                      }
+                    },
+                    "FilterScopeMismatches": {
+                      "type": "Query",
+                      "inputs": {
+                        "from": "@body('GetPlanItems')?['value']",
+                        "where": "@not(equals(item()?['ScopeVersion'],first(body('LookupDiscoveryRun')?['value'])?['ScopeVersion']))"
+                      },
+                      "runAfter": {
+                        "SelectPlanReviewRows": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    },
+                    "SelectPlanRunDetails": {
+                      "type": "Select",
+                      "inputs": {
+                        "from": "@body('LookupDiscoveryRun')?['value']",
+                        "select": {
+                          "DiscoveryRunID": "@item()?['DiscoveryRunID']",
+                          "Title": "@item()?['Title']",
+                          "RunStatus": "@item()?['RunStatus']?['Value']",
+                          "ScopeVersion": "@item()?['ScopeVersion']",
+                          "PlannedQueryCount": "@item()?['PlannedQueryCount']"
+                        }
+                      },
+                      "runAfter": {
+                        "FilterScopeMismatches": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    },
+                    "AssembleDiscoveryPlan": {
+                      "type": "Compose",
+                      "inputs": "@setProperty(\r\n  setProperty(\r\n    setProperty(\r\n      setProperty(\r\n        json('{\"PackageType\":\"DISCOVERY_PLAN_REVIEW\",\"ApprovalPerformed\":false,\"ExecutionPerformed\":false}'),\r\n        'Run',\r\n        first(body('SelectPlanRunDetails'))\r\n      ),\r\n      'PlanItems',\r\n      body('SelectPlanReviewRows')\r\n    ),\r\n    'PlanItemCount',\r\n    length(body('GetPlanItems')?['value'])\r\n  ),\r\n  'ScopeMismatchCount',\r\n  length(body('FilterScopeMismatches'))\r\n)",
+                      "runAfter": {
+                        "SelectPlanRunDetails": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    },
+                    "Condition_3": {
+                      "type": "If",
+                      "expression": {
+                        "and": [
+                          {
+                            "less": [
+                              "@length(string(outputs('AssembleDiscoveryPlan')))",
+                              60000
+                            ]
+                          }
+                        ]
+                      },
+                      "actions": {
+                        "Set_variable_3": {
+                          "type": "SetVariable",
+                          "inputs": {
+                            "name": "DiscoveryPlanResult",
+                            "value": "@string(outputs('AssembleDiscoveryPlan'))"
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Set_variable_4": {
+                            "type": "SetVariable",
+                            "inputs": {
+                              "name": "DiscoveryPlanResult",
+                              "value": "DISCOVERY_PLAN_TOO_LARGE: The saved plan exceeds the pilot response-size limit and was not returned. Use paged retrieval or a saved report to review the full plan. No approval or execution was performed."
+                            }
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "AssembleDiscoveryPlan": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Set_variable_2": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "DiscoveryPlanResult",
+                          "value": "PLAN_NOT_FOUND: No saved plan items match the supplied DiscoveryRunID and PlanVersion. Check both values. No approval or execution was performed."
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Set_variable_1": {
+                    "type": "SetVariable",
+                    "inputs": {
+                      "name": "DiscoveryPlanResult",
+                      "value": "PLAN_RETRIEVAL_LIMIT_REACHED: The lookup returned 5000 or more plan items. A complete plan could not be returned because the retrieved data may be incomplete. Use paged retrieval before reviewing or authorizing execution. No approval or execution was performed."
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "GetPlanItems": [
+                  "SUCCEEDED"
+                ]
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Set_variable": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "DiscoveryPlanResult",
+                  "value": "@if(\r\n  equals(length(body('LookupDiscoveryRun')?['value']), 0),\r\n  'NOT_FOUND: No discovery run matches the supplied DiscoveryRunID. No plan was returned. No approval or execution was performed.',\r\n  'DUPLICATE_DISCOVERY_RUN_ID: Multiple discovery runs match the supplied DiscoveryRunID. Resolve the duplicate records before reviewing the plan. No approval or execution was performed.'\r\n)"
+                }
+              }
+            }
+          },
+          "runAfter": {
+            "LookupDiscoveryRun": [
+              "SUCCEEDED"
+            ]
+          }
+        }
+      },
+      "outputs": {},
+      "description": "When an agent calls the flow and send back a response.",
+      "metadata": {
+        "defaultToEmbeddedConnections": true
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

@@ -1,0 +1,524 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_4711d"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "metadata": {
+        "defaultToEmbeddedConnections": true
+      },
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "description": "The exact saved discovery run ID whose approved plan items should be executed. The run must already be RUNNING. Do not create or infer an ID.",
+                  "title": "DiscoveryRunID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_1": {
+                  "description": "The exact saved plan version to execute. It must match the specified run and approval request. Do not substitute another version.",
+                  "title": "PlanVersion",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_2": {
+                  "description": "The exact saved human approval request ID authorizing this plan snapshot. Approval must be recorded as APPROVED and pass validation. Do not generate an ID or submit a new approval request.",
+                  "title": "ApprovalRequestID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "required": [
+                "text",
+                "text_1",
+                "text_2"
+              ]
+            }
+          },
+          "metadata": {
+            "operationMetadataId": "b8f61c18-7224-4f8a-9c5f-72fbce5df764"
+          }
+        }
+      },
+      "actions": {
+        "Respond_to_the_agent": {
+          "type": "Response",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "planbatchexecutionresult": {
+                  "title": "PlanBatchExecutionResult",
+                  "description": "",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "additionalProperties": {}
+            },
+            "statusCode": 200,
+            "body": {
+              "planbatchexecutionresult": "@{variables('PlanBatchExecutionResult')}"
+            }
+          },
+          "runAfter": {
+            "BatchDiscoveryRunFound": [
+              "Succeeded",
+              "TIMEDOUT",
+              "SKIPPED",
+              "FAILED"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "81c94f73-dd52-465c-ad3b-a4686da63cc3"
+          }
+        },
+        "Initialize_variable": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "PlanBatchExecutionResult",
+                "type": "string",
+                "value": "NOT_COMPLETED: Approved-plan batch execution has not reached a confirmed outcome. Some records may have changed if processing started. Inspect flow history and the reserved QueryRunID before retrying. No overall discovery completion is confirmed."
+              }
+            ]
+          },
+          "runAfter": {}
+        },
+        "LookupBatchDiscoveryRun": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "2944f657-eb00-4751-bb03-afc58448d9aa",
+              "$filter": "DiscoveryRunID eq '@{triggerBody()?['text']}'",
+              "$top": 2
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "operationId": "GetItems",
+              "connectionName": "shared_sharepointonline"
+            }
+          },
+          "runAfter": {
+            "Initialize_variable_1": [
+              "Succeeded"
+            ]
+          }
+        },
+        "BatchDiscoveryRunFound": {
+          "type": "If",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@length(body('LookupBatchDiscoveryRun')?['value'])",
+                  1
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "BatchRunIsRunning": {
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@first(body('LookupBatchDiscoveryRun')?['value'])?['RunStatus']?['Value']",
+                      "RUNNING"
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "LookupBatchApprovalRequest": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                      "table": "b5aba1ab-263a-4a28-97bb-b97e8c32525d",
+                      "$filter": "ApprovalRequestID eq '@{triggerBody()?['text_2']}'",
+                      "$top": 2
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "operationId": "GetItems",
+                      "connectionName": "shared_sharepointonline"
+                    }
+                  }
+                },
+                "LookupBatchApprovalDecision": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                      "table": "dba5e7fe-f43a-411f-aefc-d45f29e2b2ea",
+                      "$filter": "ApprovalRequestID eq '@{triggerBody()?['text_2']}'",
+                      "$top": 2
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "operationId": "GetItems",
+                      "connectionName": "shared_sharepointonline"
+                    }
+                  },
+                  "runAfter": {
+                    "LookupBatchApprovalRequest": [
+                      "Succeeded"
+                    ]
+                  }
+                },
+                "BatchApprovalRecordsFound": {
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@and(\r\n  equals(length(body('LookupBatchApprovalRequest')?['value']),1),\r\n  equals(length(body('LookupBatchApprovalDecision')?['value']),1)\r\n)",
+                          "@true"
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "BatchApprovalValid": {
+                      "type": "If",
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@and(\r\n  equals(first(body('LookupBatchApprovalRequest')?['value'])?['RequestStatus']?['Value'],'APPROVED'),\r\n  equals(first(body('LookupBatchApprovalDecision')?['value'])?['Decision']?['Value'],'APPROVED'),\r\n  equals(first(body('LookupBatchApprovalRequest')?['value'])?['ApprovalRequestID'],triggerBody()?['text_2']),\r\n  equals(first(body('LookupBatchApprovalDecision')?['value'])?['ApprovalRequestID'],triggerBody()?['text_2']),\r\n  equals(first(body('LookupBatchApprovalRequest')?['value'])?['DiscoveryRunID'],triggerBody()?['text']),\r\n  equals(first(body('LookupBatchApprovalDecision')?['value'])?['DiscoveryRunID'],triggerBody()?['text']),\r\n  equals(first(body('LookupBatchApprovalRequest')?['value'])?['PlanVersion'],triggerBody()?['text_1']),\r\n  equals(first(body('LookupBatchApprovalDecision')?['value'])?['PlanVersion'],triggerBody()?['text_1']),\r\n  not(empty(first(body('LookupBatchApprovalRequest')?['value'])?['PlanSnapshot'])),\r\n  equals(\r\n    first(body('LookupBatchApprovalRequest')?['value'])?['PlanSnapshot'],\r\n    first(body('LookupBatchApprovalDecision')?['value'])?['PlanSnapshot']\r\n  ),\r\n  not(empty(first(body('LookupBatchApprovalDecision')?['value'])?['DecisionAt'])),\r\n  not(empty(first(body('LookupBatchApprovalRequest')?['value'])?['AssignedReviewer']?['Email'])),\r\n  equals(\r\n    toLower(coalesce(first(body('LookupBatchApprovalRequest')?['value'])?['AssignedReviewer']?['Email'],'')),\r\n    toLower(coalesce(first(body('LookupBatchApprovalDecision')?['value'])?['DecisionBy']?['Email'],''))\r\n  )\r\n)",
+                              "@true"
+                            ]
+                          }
+                        ]
+                      },
+                      "actions": {
+                        "ReadBatchApprovalSnapshot": {
+                          "type": "Compose",
+                          "inputs": "@json(first(body('LookupBatchApprovalDecision')?['value'])?['PlanSnapshot'])"
+                        },
+                        "BatchSnapshotValid": {
+                          "type": "If",
+                          "expression": {
+                            "and": [
+                              {
+                                "equals": [
+                                  "@and(\r\n  equals(outputs('ReadBatchApprovalSnapshot')?['SnapshotType'],'DISCOVERY_PLAN_EXECUTION_APPROVAL'),\r\n  equals(outputs('ReadBatchApprovalSnapshot')?['SnapshotSchemaVersion'],'1.0'),\r\n  greater(length(coalesce(outputs('ReadBatchApprovalSnapshot')?['PlanItems'],json('[]'))),0),\r\n  lessOrEquals(length(coalesce(outputs('ReadBatchApprovalSnapshot')?['PlanItems'],json('[]'))),50),\r\n  equals(\r\n    outputs('ReadBatchApprovalSnapshot')?['PlanItemCount'],\r\n    length(coalesce(outputs('ReadBatchApprovalSnapshot')?['PlanItems'],json('[]')))\r\n  )\r\n)",
+                                  "@true"
+                                ]
+                              }
+                            ]
+                          },
+                          "actions": {
+                            "FilterInvalidBatchSnapshotItems": {
+                              "type": "Query",
+                              "inputs": {
+                                "from": "@outputs('ReadBatchApprovalSnapshot')?['PlanItems']",
+                                "where": "@equals(or(\r\n  not(equals(item()?['DiscoveryRunID'],triggerBody()?['text'])),\r\n  not(equals(item()?['PlanVersion'],triggerBody()?['text_1'])),\r\n  empty(trim(coalesce(item()?['ScopeVersion'],''))),\r\n  not(equals(item()?['ScopeVersion'],first(body('LookupBatchDiscoveryRun')?['value'])?['ScopeVersion'])),\r\n  not(equals(item()?['ProviderName'],'TAVILY_API')),\r\n  not(equals(item()?['MaxResults'],5)),\r\n  empty(trim(coalesce(item()?['PlanItemID'],''))),\r\n  empty(trim(coalesce(item()?['QueryRunID'],''))),\r\n  empty(trim(coalesce(item()?['QueryPackKey'],''))),\r\n  empty(trim(coalesce(item()?['QueryText'],'')))\r\n),true)"
+                              }
+                            },
+                            "GetBatchPlanItems": {
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                  "table": "2fb96fa4-a56c-458e-816c-dbc7efb8aa2b",
+                                  "$filter": "@concat(\r\n  'DiscoveryRunID eq ''',\r\n  replace(triggerBody()?['text'],'''',''''''),\r\n  ''' and PlanVersion eq ''',\r\n  replace(triggerBody()?['text_1'],'''',''''''),\r\n  ''''\r\n)",
+                                  "$top": 51
+                                },
+                                "host": {
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                  "operationId": "GetItems",
+                                  "connectionName": "shared_sharepointonline"
+                                }
+                              },
+                              "runAfter": {
+                                "FilterInvalidBatchSnapshotItems": [
+                                  "Succeeded"
+                                ]
+                              }
+                            },
+                            "ValidateBatchSnapshotItems": {
+                              "type": "Foreach",
+                              "foreach": "@outputs('ReadBatchApprovalSnapshot')?['PlanItems']",
+                              "actions": {
+                                "MatchCurrentBatchPlanItem": {
+                                  "type": "Query",
+                                  "inputs": {
+                                    "from": "@body('GetBatchPlanItems')?['value']",
+                                    "where": "@equals(and(\r\n  equals(item()?['PlanItemID'],items('ValidateBatchSnapshotItems')?['PlanItemID']),\r\n  equals(item()?['DiscoveryRunID'],items('ValidateBatchSnapshotItems')?['DiscoveryRunID']),\r\n  equals(item()?['PlanVersion'],items('ValidateBatchSnapshotItems')?['PlanVersion']),\r\n  equals(item()?['ScopeVersion'],items('ValidateBatchSnapshotItems')?['ScopeVersion']),\r\n  equals(item()?['QueryPackKey'],items('ValidateBatchSnapshotItems')?['QueryPackKey']),\r\n  equals(item()?['QueryText'],items('ValidateBatchSnapshotItems')?['QueryText']),\r\n  equals(item()?['QueryRunID'],items('ValidateBatchSnapshotItems')?['QueryRunID']),\r\n  equals(item()?['ProviderName'],items('ValidateBatchSnapshotItems')?['ProviderName']),\r\n  equals(item()?['MaxResults'],items('ValidateBatchSnapshotItems')?['MaxResults'])\r\n),true)"
+                                  }
+                                },
+                                "Append_to_array_variable": {
+                                  "type": "AppendToArrayVariable",
+                                  "inputs": {
+                                    "name": "BatchItemValidationResults",
+                                    "value": "@equals(length(body('MatchCurrentBatchPlanItem')),1)"
+                                  },
+                                  "runAfter": {
+                                    "MatchCurrentBatchPlanItem": [
+                                      "Succeeded"
+                                    ]
+                                  }
+                                }
+                              },
+                              "runAfter": {
+                                "GetBatchPlanItems": [
+                                  "Succeeded"
+                                ]
+                              }
+                            },
+                            "SelectBatchSnapshotIdentifiers": {
+                              "type": "Select",
+                              "inputs": {
+                                "from": "@outputs('ReadBatchApprovalSnapshot')?['PlanItems']",
+                                "select": {
+                                  "PlanItemID": "@item()?['PlanItemID']",
+                                  "QueryRunID": "@item()?['QueryRunID']"
+                                }
+                              },
+                              "runAfter": {
+                                "ValidateBatchSnapshotItems": [
+                                  "Succeeded"
+                                ]
+                              }
+                            },
+                            "BatchPlanMatchesApproval": {
+                              "type": "If",
+                              "expression": {
+                                "and": [
+                                  {
+                                    "equals": [
+                                      "@and(\r\n  equals(length(body('FilterInvalidBatchSnapshotItems')),0),\r\n  equals(\r\n    length(body('GetBatchPlanItems')?['value']),\r\n    length(outputs('ReadBatchApprovalSnapshot')?['PlanItems'])\r\n  ),\r\n  equals(\r\n    length(variables('BatchItemValidationResults')),\r\n    length(outputs('ReadBatchApprovalSnapshot')?['PlanItems'])\r\n  ),\r\n  not(contains(variables('BatchItemValidationResults'),false)),\r\n  equals(\r\n    length(\r\n      union(\r\n        body('SelectBatchSnapshotIdentifiers'),\r\n        body('SelectBatchSnapshotIdentifiers')\r\n      )\r\n    ),\r\n    length(outputs('ReadBatchApprovalSnapshot')?['PlanItems'])\r\n  )\r\n)",
+                                      "@true"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "actions": {
+                                "FilterReadyBatchPlanItems": {
+                                  "type": "Query",
+                                  "inputs": {
+                                    "from": "@body('GetBatchPlanItems')?['value']",
+                                    "where": "@equals(and(\r\n  or(\r\n    equals(item()?['PlanStatus']?['Value'],'DRAFT'),\r\n    equals(item()?['PlanStatus']?['Value'],'APPROVED')\r\n  ),\r\n  empty(item()?['ExecutionStartedAt']),\r\n  empty(item()?['ExecutionCompletedAt'])\r\n),true)"
+                                  }
+                                },
+                                "SelectOneBatchPlanItem": {
+                                  "type": "Compose",
+                                  "inputs": "@take(body('FilterReadyBatchPlanItems'),1)",
+                                  "runAfter": {
+                                    "FilterReadyBatchPlanItems": [
+                                      "Succeeded"
+                                    ]
+                                  }
+                                },
+                                "ExecuteSelectedBatchItem": {
+                                  "type": "Foreach",
+                                  "foreach": "@outputs('SelectOneBatchPlanItem')",
+                                  "actions": {
+                                    "Run_a_Child_Flow": {
+                                      "type": "Workflow",
+                                      "inputs": {
+                                        "host": {
+                                          "workflowReferenceName": "ed7ff983-35d1-f111-a05b-000d3a0aa2f5"
+                                        },
+                                        "body": {
+                                          "text": "@items('ExecuteSelectedBatchItem')?['DiscoveryRunID']",
+                                          "text_1": "@items('ExecuteSelectedBatchItem')?['QueryPackKey']",
+                                          "text_2": "@items('ExecuteSelectedBatchItem')?['QueryText']",
+                                          "text_3": "@items('ExecuteSelectedBatchItem')?['QueryRunID']",
+                                          "text_4": "@triggerBody()?['text_2']"
+                                        },
+                                        "retryPolicy": {
+                                          "type": "none"
+                                        }
+                                      }
+                                    },
+                                    "Set_variable_6": {
+                                      "type": "SetVariable",
+                                      "inputs": {
+                                        "name": "PlanBatchExecutionResult",
+                                        "value": "@body('Run_a_Child_Flow')?['queryexecutionresult']"
+                                      },
+                                      "runAfter": {
+                                        "Run_a_Child_Flow": [
+                                          "SUCCEEDED"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "runAfter": {
+                                    "Set_variable_7": [
+                                      "SUCCEEDED"
+                                    ]
+                                  }
+                                },
+                                "Set_variable_7": {
+                                  "type": "SetVariable",
+                                  "inputs": {
+                                    "name": "PlanBatchExecutionResult",
+                                    "value": "NO_READY_PLAN_ITEMS: No unstarted DRAFT or APPROVED plan items were selected. No search was executed by this batch. Completed, failed, blocked, cancelled, or in-progress items were not retried. Overall discovery completion is not confirmed."
+                                  },
+                                  "runAfter": {
+                                    "SelectOneBatchPlanItem": [
+                                      "SUCCEEDED"
+                                    ]
+                                  }
+                                }
+                              },
+                              "else": {
+                                "actions": {
+                                  "Set_variable_5": {
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                      "name": "PlanBatchExecutionResult",
+                                      "value": "BLOCKED_PLAN_CHANGED: The current plan does not match the approved snapshot, or snapshot validation found invalid or repeated items. No batch search was executed and no plan items were changed. Review the current plan, scope, and approval snapshot before proceeding."
+                                    }
+                                  }
+                                }
+                              },
+                              "runAfter": {
+                                "SelectBatchSnapshotIdentifiers": [
+                                  "Succeeded"
+                                ]
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {
+                              "Set_variable_4": {
+                                "type": "SetVariable",
+                                "inputs": {
+                                  "name": "PlanBatchExecutionResult",
+                                  "value": "BLOCKED_APPROVAL_SNAPSHOT: The approved snapshot has an unsupported format, an invalid item count, or no plan items. No batch search was executed and no plan items were changed. Review the saved approval snapshot before proceeding."
+                                }
+                              }
+                            }
+                          },
+                          "runAfter": {
+                            "ReadBatchApprovalSnapshot": [
+                              "Succeeded"
+                            ]
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Set_variable_3": {
+                            "type": "SetVariable",
+                            "inputs": {
+                              "name": "PlanBatchExecutionResult",
+                              "value": "BLOCKED_PLAN_APPROVAL: The saved approval did not pass validation for the requested discovery run and plan version. Check approval status, matching snapshots, reviewer identity, and decision timestamp. No batch search was executed and no plan items were changed."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Set_variable_2": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "PlanBatchExecutionResult",
+                          "value": "BLOCKED_APPROVAL_LOOKUP: The supplied ApprovalRequestID did not match exactly one saved request and one recorded decision. No batch search was executed and no plan items were changed. Review missing or duplicate approval records before proceeding."
+                        }
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "LookupBatchApprovalDecision": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Set_variable_1": {
+                    "type": "SetVariable",
+                    "inputs": {
+                      "name": "PlanBatchExecutionResult",
+                      "value": "BLOCKED_RUN_STATUS: The discovery run is not in RUNNING status. No batch search was executed and no plan items were changed. This tool does not change run status."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Set_variable": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "PlanBatchExecutionResult",
+                  "value": "@if(\r\n  equals(length(body('LookupBatchDiscoveryRun')?['value']),0),\r\n  'NOT_FOUND: No discovery run matches the supplied DiscoveryRunID. No batch search was executed and no plan items were changed.',\r\n  'DUPLICATE_DISCOVERY_RUN_ID: Multiple discovery runs match the supplied DiscoveryRunID. Resolve the duplicate records before executing a plan batch. No batch search was executed and no plan items were changed.'\r\n)"
+                }
+              }
+            }
+          },
+          "runAfter": {
+            "LookupBatchDiscoveryRun": [
+              "Succeeded"
+            ]
+          }
+        },
+        "Initialize_variable_1": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "BatchItemValidationResults",
+                "type": "array",
+                "value": "@json('[]')"
+              }
+            ]
+          },
+          "runAfter": {
+            "Initialize_variable": [
+              "Succeeded"
+            ]
+          }
+        }
+      },
+      "outputs": {},
+      "description": "When an agent calls the flow and send back a response."
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

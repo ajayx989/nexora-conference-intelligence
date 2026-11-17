@@ -1,0 +1,546 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_8e0f8"
+        },
+        "api": {
+          "name": "shared_sharepointonline"
+        }
+      },
+      "shared_approvals": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedapprovals_d272b"
+        },
+        "api": {
+          "name": "shared_approvals"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "When_an_item_is_created": {
+          "recurrence": {
+            "frequency": "Minute",
+            "interval": 1
+          },
+          "evaluatedRecurrence": {
+            "frequency": "Minute",
+            "interval": 1
+          },
+          "splitOn": "@triggerOutputs()?['body/value']",
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "8962af14-aead-4908-a0e8-588dfce0f952"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "GetOnNewItems"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      },
+      "actions": {
+        "GetGate1ApprovalRequest": {
+          "runAfter": {},
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "8962af14-aead-4908-a0e8-588dfce0f952",
+              "id": "@triggerBody()?['ID']"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "GetItem"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Gate1RequestIsQueued": {
+          "actions": {
+            "MarkGate1RequestProcessing": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                  "table": "8962af14-aead-4908-a0e8-588dfce0f952",
+                  "id": "@body('GetGate1ApprovalRequest')?['ID']",
+                  "item/Gate1ApprovalRequestID": "@body('GetGate1ApprovalRequest')?['Gate1ApprovalRequestID']",
+                  "item/DiscoveryRunID": "@body('GetGate1ApprovalRequest')?['DiscoveryRunID']",
+                  "item/ScopeVersion": "@body('GetGate1ApprovalRequest')?['ScopeVersion']",
+                  "item/ReviewSnapshot": "@body('GetGate1ApprovalRequest')?['ReviewSnapshot']",
+                  "item/AssignedReviewer/Claims": "@body('GetGate1ApprovalRequest')?['AssignedReviewer']?['Claims']",
+                  "item/RequestStatus/Value": "PROCESSING",
+                  "item/ProcessingMessage": "Validating the saved Gate 1 review snapshot before requesting human review. No approval decision has been recorded."
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "PatchItem"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "ReadGate1ReviewSnapshot": {
+              "runAfter": {
+                "MarkGate1RequestProcessing": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Compose",
+              "inputs": "@json(body('GetGate1ApprovalRequest')?['ReviewSnapshot'])"
+            },
+            "Gate1SnapshotValid": {
+              "actions": {
+                "LookupGate1ApprovalRun": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                      "table": "2944f657-eb00-4751-bb03-afc58448d9aa",
+                      "$filter": "@concat(\r\n  'DiscoveryRunID eq ''',\r\n  replace(\r\n    body('GetGate1ApprovalRequest')?['DiscoveryRunID'],\r\n    '''',\r\n    ''''''\r\n  ),\r\n  ''''\r\n)",
+                      "$top": 2
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "GetItems"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Gate1ApprovalRunValid": {
+                  "actions": {
+                    "BuildGate1ApprovalDetails": {
+                      "type": "Compose",
+                      "inputs": "@concat(\r\n  'Review the saved Gate 1 discovery snapshot before deciding.',\r\n  decodeUriComponent('%0A%0A'),\r\n  'Request: ',\r\n  body('GetGate1ApprovalRequest')?['Gate1ApprovalRequestID'],\r\n  decodeUriComponent('%0A'),\r\n  'Discovery run: ',\r\n  body('GetGate1ApprovalRequest')?['DiscoveryRunID'],\r\n  decodeUriComponent('%0A'),\r\n  'Scope: ',\r\n  body('GetGate1ApprovalRequest')?['ScopeVersion'],\r\n  decodeUriComponent('%0A'),\r\n  'Candidate leads in snapshot: ',\r\n  string(length(outputs('ReadGate1ReviewSnapshot')?['CandidateLeads'])),\r\n  decodeUriComponent('%0A'),\r\n  'Snapshot CoverageComplete: ',\r\n  string(outputs('ReadGate1ReviewSnapshot')?['CoverageComplete']),\r\n  decodeUriComponent('%0A%0A'),\r\n  'Open the linked SharePoint request and read its full ReviewSnapshot, including candidates, evidence, lookup issues, and coverage limitations.',\r\n  decodeUriComponent('%0A%0A'),\r\n  'Approve only to accept this saved discovery snapshot for handoff to the next stage, with any limitations stated in your comments. Reject if further discovery or corrections are required.',\r\n  decodeUriComponent('%0A%0A'),\r\n  'Approval does not verify event facts, establish complete coverage, authorize searches, or change run status.'\r\n)"
+                    },
+                    "CreateGate1HumanApproval": {
+                      "runAfter": {
+                        "BuildGate1ApprovalDetails": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "approvalType": "Basic",
+                          "ApprovalCreationInput/title": "@concat(\r\n  'NEXORA Gate 1 review — ',\r\n  body('GetGate1ApprovalRequest')?['Gate1ApprovalRequestID']\r\n)",
+                          "ApprovalCreationInput/assignedTo": "@body('GetGate1ApprovalRequest')?['AssignedReviewer']?['Email']",
+                          "ApprovalCreationInput/details": "@concat(\r\n  outputs('BuildGate1ApprovalDetails'),\r\n  decodeUriComponent('%0A%0A'),\r\n  'Evidence limitation: Observation snippets in this snapshot are excerpts of at most 300 characters. Original lengths and truncation flags are included. Full snippets remain in saved observation records. Approval applies only to the displayed saved snapshot, not omitted content. Event facts and duplicate identities remain unverified.'\r\n)",
+                          "ApprovalCreationInput/itemLink": "@concat(\r\n  'https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence/Lists/NEXORA_Gate1ApprovalRequests/DispForm.aspx?ID=',\r\n  string(body('GetGate1ApprovalRequest')?['ID'])\r\n)",
+                          "ApprovalCreationInput/itemLinkDescription": "Open saved Gate 1 review snapshot",
+                          "ApprovalCreationInput/enableNotifications": true,
+                          "ApprovalCreationInput/enableReassignment": true
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_approvals",
+                          "connectionName": "shared_approvals",
+                          "operationId": "CreateAnApproval"
+                        },
+                        "retryPolicy": {
+                          "type": "none"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      }
+                    },
+                    "MarkGate1AwaitingReview": {
+                      "runAfter": {
+                        "CreateGate1HumanApproval": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                          "table": "8962af14-aead-4908-a0e8-588dfce0f952",
+                          "id": "@body('GetGate1ApprovalRequest')?['ID']",
+                          "item/Gate1ApprovalRequestID": "@body('GetGate1ApprovalRequest')?['Gate1ApprovalRequestID']",
+                          "item/DiscoveryRunID": "@body('GetGate1ApprovalRequest')?['DiscoveryRunID']",
+                          "item/ScopeVersion": "@body('GetGate1ApprovalRequest')?['ScopeVersion']",
+                          "item/ReviewSnapshot": "@body('GetGate1ApprovalRequest')?['ReviewSnapshot']",
+                          "item/ProviderApprovalID": "@outputs('CreateGate1HumanApproval')?['body/name']",
+                          "item/AssignedReviewer/Claims": "@body('GetGate1ApprovalRequest')?['AssignedReviewer']?['Claims']",
+                          "item/RequestStatus/Value": "AWAITING_REVIEW",
+                          "item/ReviewRequestedAt": "@utcNow()",
+                          "item/ProcessingMessage": "Human Gate 1 review requested. Awaiting the assigned reviewer's decision. No searches were executed and run status was not changed."
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "PatchItem"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      }
+                    },
+                    "WaitForGate1Approval": {
+                      "runAfter": {
+                        "MarkGate1AwaitingReview": [
+                          "Succeeded"
+                        ]
+                      },
+                      "limit": {
+                        "timeout": "P7D"
+                      },
+                      "type": "OpenApiConnectionWebhook",
+                      "inputs": {
+                        "parameters": {
+                          "approvalName": "@outputs('CreateGate1HumanApproval')?['body/name']"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_approvals",
+                          "connectionName": "shared_approvals",
+                          "operationId": "WaitForAnApproval"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      }
+                    },
+                    "GetGate1RequestAfterReview": {
+                      "runAfter": {
+                        "WaitForGate1Approval": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                          "table": "8962af14-aead-4908-a0e8-588dfce0f952",
+                          "id": "@body('GetGate1ApprovalRequest')?['ID']"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "GetItem"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      }
+                    },
+                    "Gate1RequestUnchangedAfterReview": {
+                      "actions": {
+                        "Gate1ReviewerResponseValid": {
+                          "actions": {
+                            "SaveGate1ApprovalDecision": {
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                  "table": "701e2328-932c-493e-b37e-08c34b4fdf59",
+                                  "item/Gate1ApprovalID": "@concat('G1APR-', guid())",
+                                  "item/Gate1ApprovalRequestID": "@body('GetGate1ApprovalRequest')?['Gate1ApprovalRequestID']",
+                                  "item/DiscoveryRunID": "@body('GetGate1ApprovalRequest')?['DiscoveryRunID']",
+                                  "item/ScopeVersion": "@body('GetGate1ApprovalRequest')?['ScopeVersion']",
+                                  "item/ReviewSnapshot": "@body('GetGate1ApprovalRequest')?['ReviewSnapshot']",
+                                  "item/DecisionAt": "@first(body('WaitForGate1Approval')?['responses'])?['responseDate']",
+                                  "item/Title": "@body('GetGate1ApprovalRequest')?['Gate1ApprovalRequestID']",
+                                  "item/Decision/Value": "@if(\r\n  equals(body('WaitForGate1Approval')?['outcome'], 'Approve'),\r\n  'APPROVED',\r\n  'REJECTED'\r\n)",
+                                  "item/DecisionBy/Claims": "@concat(\r\n  'i:0#.f|membership|',\r\n  toLower(\r\n    first(body('WaitForGate1Approval')?['responses'])?['responder']?['email']\r\n  )\r\n)",
+                                  "item/DecisionComments": "@coalesce(first(body('WaitForGate1Approval')?['responses'])?['comments'], '')"
+                                },
+                                "host": {
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                  "connectionName": "shared_sharepointonline",
+                                  "operationId": "PostItem"
+                                },
+                                "authentication": "@parameters('$authentication')"
+                              }
+                            },
+                            "CompleteGate1ApprovalRequest": {
+                              "runAfter": {
+                                "SaveGate1ApprovalDecision": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                  "table": "8962af14-aead-4908-a0e8-588dfce0f952",
+                                  "id": "@body('GetGate1RequestAfterReview')?['ID']",
+                                  "item/Gate1ApprovalRequestID": "@body('GetGate1ApprovalRequest')?['Gate1ApprovalRequestID']",
+                                  "item/DiscoveryRunID": "@body('GetGate1ApprovalRequest')?['DiscoveryRunID']",
+                                  "item/ScopeVersion": "@body('GetGate1ApprovalRequest')?['ScopeVersion']",
+                                  "item/ReviewSnapshot": "@body('GetGate1ApprovalRequest')?['ReviewSnapshot']",
+                                  "item/ProviderApprovalID": "@outputs('CreateGate1HumanApproval')?['body/name']",
+                                  "item/AssignedReviewer/Claims": "@body('GetGate1ApprovalRequest')?['AssignedReviewer']?['Claims']",
+                                  "item/RequestStatus/Value": "@if(\r\n  equals(body('WaitForGate1Approval')?['outcome'], 'Approve'),\r\n  'APPROVED',\r\n  'REJECTED'\r\n)",
+                                  "item/ReviewRequestedAt": "@body('GetGate1RequestAfterReview')?['ReviewRequestedAt']",
+                                  "item/CompletedAt": "@utcNow()",
+                                  "item/ProcessingMessage": "The assigned reviewer's Gate 1 decision was saved in NEXORA_Gate1Approvals against the reviewed snapshot. Coverage and event facts were not independently verified. No searches were executed and discovery run status was not changed."
+                                },
+                                "host": {
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                  "connectionName": "shared_sharepointonline",
+                                  "operationId": "PatchItem"
+                                },
+                                "authentication": "@parameters('$authentication')"
+                              }
+                            }
+                          },
+                          "else": {
+                            "actions": {
+                              "Terminate_1": {
+                                "type": "Terminate",
+                                "inputs": {
+                                  "runStatus": "Failed",
+                                  "runError": {
+                                    "code": "INVALID_GATE1_REVIEWER_RESPONSE",
+                                    "message": "The approval response failed reviewer identity, response-count, outcome, or timestamp validation. No Gate 1 decision was recorded by this path. Inspect the approval and flow history."
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "expression": {
+                            "and": [
+                              {
+                                "equals": [
+                                  "@if(\r\n  equals(\r\n    length(coalesce(body('WaitForGate1Approval')?['responses'], json('[]'))),\r\n    1\r\n  ),\r\n  and(\r\n    equals(\r\n      toLower(coalesce(\r\n        first(body('WaitForGate1Approval')?['responses'])?['responder']?['email'],\r\n        ''\r\n      )),\r\n      toLower(coalesce(\r\n        body('GetGate1ApprovalRequest')?['AssignedReviewer']?['Email'],\r\n        ''\r\n      ))\r\n    ),\r\n    contains(\r\n      createArray('Approve', 'Reject'),\r\n      body('WaitForGate1Approval')?['outcome']\r\n    ),\r\n    not(empty(\r\n      first(body('WaitForGate1Approval')?['responses'])?['responseDate']\r\n    ))\r\n  ),\r\n  false\r\n)",
+                                  "@true"
+                                ]
+                              }
+                            ]
+                          },
+                          "type": "If"
+                        }
+                      },
+                      "runAfter": {
+                        "GetGate1RequestAfterReview": [
+                          "Succeeded"
+                        ]
+                      },
+                      "else": {
+                        "actions": {
+                          "Terminate": {
+                            "type": "Terminate",
+                            "inputs": {
+                              "runStatus": "Cancelled"
+                            }
+                          }
+                        }
+                      },
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@and(\r\n  equals(\r\n    body('GetGate1RequestAfterReview')?['RequestStatus']?['Value'],\r\n    'AWAITING_REVIEW'\r\n  ),\r\n  equals(\r\n    body('GetGate1RequestAfterReview')?['Gate1ApprovalRequestID'],\r\n    body('GetGate1ApprovalRequest')?['Gate1ApprovalRequestID']\r\n  ),\r\n  equals(\r\n    body('GetGate1RequestAfterReview')?['DiscoveryRunID'],\r\n    body('GetGate1ApprovalRequest')?['DiscoveryRunID']\r\n  ),\r\n  equals(\r\n    body('GetGate1RequestAfterReview')?['ScopeVersion'],\r\n    body('GetGate1ApprovalRequest')?['ScopeVersion']\r\n  ),\r\n  equals(\r\n    body('GetGate1RequestAfterReview')?['ReviewSnapshot'],\r\n    body('GetGate1ApprovalRequest')?['ReviewSnapshot']\r\n  ),\r\n  equals(\r\n    body('GetGate1RequestAfterReview')?['AssignedReviewer']?['Claims'],\r\n    body('GetGate1ApprovalRequest')?['AssignedReviewer']?['Claims']\r\n  ),\r\n  equals(\r\n    body('GetGate1RequestAfterReview')?['ProviderApprovalID'],\r\n    outputs('CreateGate1HumanApproval')?['body/name']\r\n  )\r\n)",
+                              "@true"
+                            ]
+                          }
+                        ]
+                      },
+                      "type": "If"
+                    },
+                    "GetGate1RequestAfterWaitFailure": {
+                      "runAfter": {
+                        "WaitForGate1Approval": [
+                          "TimedOut",
+                          "Failed"
+                        ]
+                      },
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                          "table": "8962af14-aead-4908-a0e8-588dfce0f952",
+                          "id": "@body('GetGate1ApprovalRequest')?['ID']"
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "GetItem"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      }
+                    },
+                    "Gate1FailedWaitRequestStillActive": {
+                      "actions": {
+                        "MarkGate1ApprovalWaitFailed": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                              "table": "8962af14-aead-4908-a0e8-588dfce0f952",
+                              "id": "@body('GetGate1RequestAfterWaitFailure')?['ID']",
+                              "item/Gate1ApprovalRequestID": "@body('GetGate1RequestAfterWaitFailure')?['Gate1ApprovalRequestID']",
+                              "item/DiscoveryRunID": "@body('GetGate1RequestAfterWaitFailure')?['DiscoveryRunID']",
+                              "item/ScopeVersion": "@body('GetGate1RequestAfterWaitFailure')?['ScopeVersion']",
+                              "item/ReviewSnapshot": "@body('GetGate1RequestAfterWaitFailure')?['ReviewSnapshot']",
+                              "item/ProviderApprovalID": "@body('GetGate1RequestAfterWaitFailure')?['ProviderApprovalID']",
+                              "item/AssignedReviewer/Claims": "@body('GetGate1RequestAfterWaitFailure')?['AssignedReviewer']?['Claims']",
+                              "item/RequestStatus/Value": "@if(\r\n  equals(actions('WaitForGate1Approval')?['status'], 'TimedOut'),\r\n  'EXPIRED',\r\n  'FAILED'\r\n)",
+                              "item/ReviewRequestedAt": "@body('GetGate1RequestAfterWaitFailure')?['ReviewRequestedAt']",
+                              "item/CompletedAt": "@utcNow()",
+                              "item/ProcessingMessage": "The Gate 1 approval wait failed or timed out. No decision was recorded by this failure-handling path. The provider approval may still exist; inspect it and the flow history before retrying. No searches were executed and discovery run status was not changed."
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "connectionName": "shared_sharepointonline",
+                              "operationId": "PatchItem"
+                            },
+                            "authentication": "@parameters('$authentication')"
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "GetGate1RequestAfterWaitFailure": [
+                          "Succeeded"
+                        ]
+                      },
+                      "else": {
+                        "actions": {}
+                      },
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@and(\r\n  equals(\r\n    body('GetGate1RequestAfterWaitFailure')?['RequestStatus']?['Value'],\r\n    'AWAITING_REVIEW'\r\n  ),\r\n  equals(\r\n    body('GetGate1RequestAfterWaitFailure')?['ProviderApprovalID'],\r\n    outputs('CreateGate1HumanApproval')?['body/name']\r\n  )\r\n)",
+                              "@true"
+                            ]
+                          }
+                        ]
+                      },
+                      "type": "If"
+                    }
+                  },
+                  "runAfter": {
+                    "LookupGate1ApprovalRun": [
+                      "Succeeded"
+                    ]
+                  },
+                  "else": {
+                    "actions": {
+                      "MarkGate1RunInvalid": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                            "table": "8962af14-aead-4908-a0e8-588dfce0f952",
+                            "id": "@body('GetGate1ApprovalRequest')?['ID']",
+                            "item/Gate1ApprovalRequestID": "@body('GetGate1ApprovalRequest')?['Gate1ApprovalRequestID']",
+                            "item/DiscoveryRunID": "@body('GetGate1ApprovalRequest')?['DiscoveryRunID']",
+                            "item/ScopeVersion": "@body('GetGate1ApprovalRequest')?['ScopeVersion']",
+                            "item/ReviewSnapshot": "@body('GetGate1ApprovalRequest')?['ReviewSnapshot']",
+                            "item/AssignedReviewer/Claims": "@body('GetGate1ApprovalRequest')?['AssignedReviewer']?['Claims']",
+                            "item/RequestStatus/Value": "FAILED",
+                            "item/CompletedAt": "@utcNow()",
+                            "item/ProcessingMessage": "Gate 1 review could not proceed because the discovery run was missing, duplicated, or its current scope differed from the saved request. No human approval was requested by this processing path."
+                          },
+                          "host": {
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                            "connectionName": "shared_sharepointonline",
+                            "operationId": "PatchItem"
+                          },
+                          "authentication": "@parameters('$authentication')"
+                        }
+                      }
+                    }
+                  },
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@if(\r\n  equals(length(body('LookupGate1ApprovalRun')?['value']), 1),\r\n  equals(\r\n    first(body('LookupGate1ApprovalRun')?['value'])?['ScopeVersion'],\r\n    body('GetGate1ApprovalRequest')?['ScopeVersion']\r\n  ),\r\n  false\r\n)",
+                          "@true"
+                        ]
+                      }
+                    ]
+                  },
+                  "type": "If"
+                }
+              },
+              "runAfter": {
+                "ReadGate1ReviewSnapshot": [
+                  "Succeeded"
+                ]
+              },
+              "else": {
+                "actions": {
+                  "MarkGate1InvalidSnapshot": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                        "table": "8962af14-aead-4908-a0e8-588dfce0f952",
+                        "id": "@body('GetGate1ApprovalRequest')?['ID']",
+                        "item/Gate1ApprovalRequestID": "@body('GetGate1ApprovalRequest')?['Gate1ApprovalRequestID']",
+                        "item/DiscoveryRunID": "@body('GetGate1ApprovalRequest')?['DiscoveryRunID']",
+                        "item/ScopeVersion": "@body('GetGate1ApprovalRequest')?['ScopeVersion']",
+                        "item/ReviewSnapshot": "@body('GetGate1ApprovalRequest')?['ReviewSnapshot']",
+                        "item/AssignedReviewer/Claims": "@body('GetGate1ApprovalRequest')?['AssignedReviewer']?['Claims']",
+                        "item/RequestStatus/Value": "FAILED",
+                        "item/CompletedAt": "@utcNow()",
+                        "item/ProcessingMessage": "Gate 1 snapshot validation failed. Review the snapshot type, run identity, scope, reviewer, and required review fields. No human approval was requested by this processing path."
+                      },
+                      "host": {
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                        "connectionName": "shared_sharepointonline",
+                        "operationId": "PatchItem"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    }
+                  }
+                }
+              },
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@and(\r\n  equals(\r\n    outputs('ReadGate1ReviewSnapshot')?['PackageType'],\r\n    'GATE1_REVIEW_DRAFT'\r\n  ),\r\n  equals(\r\n    outputs('ReadGate1ReviewSnapshot')?['ApprovalRecorded'],\r\n    false\r\n  ),\r\n  equals(\r\n    outputs('ReadGate1ReviewSnapshot')?['Run']?['DiscoveryRunID'],\r\n    body('GetGate1ApprovalRequest')?['DiscoveryRunID']\r\n  ),\r\n  not(empty(body('GetGate1ApprovalRequest')?['ScopeVersion'])),\r\n  equals(\r\n    outputs('ReadGate1ReviewSnapshot')?['Run']?['ScopeVersion'],\r\n    body('GetGate1ApprovalRequest')?['ScopeVersion']\r\n  ),\r\n  not(empty(\r\n    body('GetGate1ApprovalRequest')?['AssignedReviewer']?['Email']\r\n  )),\r\n  contains(outputs('ReadGate1ReviewSnapshot'), 'CandidateLeads'),\r\n  contains(outputs('ReadGate1ReviewSnapshot'), 'CandidateLookupIssues'),\r\n  contains(outputs('ReadGate1ReviewSnapshot'), 'CoverageComplete')\r\n)",
+                      "@true"
+                    ]
+                  }
+                ]
+              },
+              "type": "If"
+            }
+          },
+          "runAfter": {
+            "GetGate1ApprovalRequest": [
+              "Succeeded"
+            ]
+          },
+          "else": {
+            "actions": {}
+          },
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@body('GetGate1ApprovalRequest')?['RequestStatus']?['Value']",
+                  "QUEUED"
+                ]
+              }
+            ]
+          },
+          "type": "If"
+        }
+      },
+      "outputs": {}
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

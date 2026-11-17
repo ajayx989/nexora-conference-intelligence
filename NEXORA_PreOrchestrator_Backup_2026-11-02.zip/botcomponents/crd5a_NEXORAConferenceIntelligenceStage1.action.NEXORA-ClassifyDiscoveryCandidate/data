@@ -1,0 +1,21 @@
+kind: TaskDialog
+modelDescription: |-
+  Saves one explicitly requested classification for an existing candidate linked to the supplied discovery run. Requires exact DiscoveryRunID, CandidateID, SourceURL, an allowed CandidateKind, and a supporting ClassificationRationale.
+
+  Allowed values: EVENT_LEAD, MULTI_EVENT_SOURCE, OTHER_SOURCE, UNKNOWN. SourceURL must exactly match the saved CanonicalURL. Never invent IDs, URLs, evidence, or page contents. When relying only on a saved title or snippet, state that limitation in the rationale.
+
+  Use only when the user explicitly requests saving a classification. Do not classify other candidates or retry automatically after an uncertain outcome. Report success only when the tool returns CLASSIFICATION_SAVED.
+
+  This tool does not read websites, execute searches, extract individual events, verify event facts or eligibility, approve Gate 1, or confirm discovery completion.
+outputs:
+  - propertyName: candidateclassificationresult
+
+action:
+  kind: InvokeFlowTaskAction
+  flowId: 31807836-57d1-f111-a05b-000d3a0aa2f5
+  connectionProperties:
+    $kind: ConnectionProperties
+    diagnostics:
+    mode: Invoker
+
+outputMode: All

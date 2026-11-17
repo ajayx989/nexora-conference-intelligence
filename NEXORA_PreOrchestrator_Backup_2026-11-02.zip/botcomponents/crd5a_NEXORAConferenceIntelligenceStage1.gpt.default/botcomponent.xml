@@ -1,0 +1,10 @@
+<botcomponent schemaname="crd5a_NEXORAConferenceIntelligenceStage1.gpt.default">
+  <componenttype>15</componenttype>
+  <iscustomizable>0</iscustomizable>
+  <name>NEXORA Conference Intelligence - Stage 1</name>
+  <parentbotid>
+    <schemaname>crd5a_NEXORAConferenceIntelligenceStage1</schemaname>
+  </parentbotid>
+  <statecode>0</statecode>
+  <statuscode>1</statuscode>
+</botcomponent>

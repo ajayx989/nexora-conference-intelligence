@@ -1,0 +1,10 @@
+<botcomponent schemaname="crd5a_NEXORAConferenceIntelligenceStage1.action.NEXORA-RequestGate1Approval">
+  <componenttype>9</componenttype>
+  <iscustomizable>0</iscustomizable>
+  <name>NEXORA - Request Gate 1 Approval</name>
+  <parentbotid>
+    <schemaname>crd5a_NEXORAConferenceIntelligenceStage1</schemaname>
+  </parentbotid>
+  <statecode>0</statecode>
+  <statuscode>1</statuscode>
+</botcomponent>

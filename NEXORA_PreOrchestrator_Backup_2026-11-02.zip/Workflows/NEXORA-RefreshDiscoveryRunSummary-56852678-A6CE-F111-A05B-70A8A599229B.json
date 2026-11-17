@@ -1,0 +1,458 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_4711d"
+        },
+        "api": {
+          "name": "shared_sharepointonline"
+        }
+      }
+    },
+    "definition": {
+      "metadata": {
+        "defaultToEmbeddedConnections": true
+      },
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "metadata": {
+            "operationMetadataId": "b8f61c18-7224-4f8a-9c5f-72fbce5df764"
+          },
+          "type": "Request",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "description": "Exact DiscoveryRunID of the saved discovery run whose summary should be refreshed.",
+                  "title": "DiscoveryRunID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "required": [
+                "text"
+              ]
+            }
+          }
+        }
+      },
+      "actions": {
+        "Respond_to_the_agent": {
+          "runAfter": {
+            "Condition": [
+              "Succeeded",
+              "TimedOut",
+              "Skipped",
+              "Failed"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "81c94f73-dd52-465c-ad3b-a4686da63cc3"
+          },
+          "type": "Response",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "runsummaryresult": {
+                  "title": "RunSummaryResult",
+                  "description": "",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "additionalProperties": {}
+            },
+            "statusCode": 200,
+            "body": {
+              "runsummaryresult": "@{variables('RunSummaryResult')}"
+            }
+          }
+        },
+        "Get_items": {
+          "runAfter": {
+            "Initialize_variable": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "2944f657-eb00-4751-bb03-afc58448d9aa",
+              "$filter": "DiscoveryRunID eq '@{triggerBody()?['text']}'",
+              "$top": 2
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "operationId": "GetItems",
+              "connectionName": "shared_sharepointonline"
+            }
+          }
+        },
+        "Initialize_variable": {
+          "runAfter": {},
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "RunSummaryResult",
+                "type": "string",
+                "value": "NOT_COMPLETED: The discovery run summary has not been refreshed."
+              }
+            ]
+          }
+        },
+        "Condition": {
+          "actions": {
+            "GetRunQueries": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                  "table": "c88470c1-cd6d-4599-9a8c-025938e989b0",
+                  "$filter": "DiscoveryRunID eq '@{triggerBody()?['text']}'"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "operationId": "GetItems",
+                  "connectionName": "shared_sharepointonline"
+                }
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            },
+            "GetRunObservations": {
+              "runAfter": {
+                "GetRunQueries": [
+                  "Succeeded"
+                ]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                  "table": "1d3e1f9f-c804-4b59-8af9-6ffaa5d40e37",
+                  "$filter": "DiscoveryRunID eq '@{triggerBody()?['text']}'"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "operationId": "GetItems",
+                  "connectionName": "shared_sharepointonline"
+                }
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            },
+            "Condition_1": {
+              "actions": {
+                "FilterExecutedQueries": {
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@body('GetRunQueries')?['value']",
+                    "where": "@greater(coalesce(item()?['AttemptCount'], 0),0)"
+                  }
+                },
+                "FilterErrorQueries": {
+                  "runAfter": {
+                    "FilterExecutedQueries": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@body('GetRunQueries')?['value']",
+                    "where": "@equals(or(\r\n  equals(item()?['QueryStatus']?['Value'], 'ERROR'),\r\n  equals(item()?['QueryStatus']?['Value'], 'TIMEOUT')\r\n),true)"
+                  }
+                },
+                "FilterLinkedObservations": {
+                  "runAfter": {
+                    "FilterErrorQueries": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@body('GetRunObservations')?['value']",
+                    "where": "@equals(empty(trim(coalesce(item()?['CandidateID'], ''))),false)"
+                  }
+                },
+                "SelectCandidateIDs": {
+                  "runAfter": {
+                    "FilterLinkedObservations": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@body('FilterLinkedObservations')",
+                    "select": {
+                      "CandidateID": "@trim(item()?['CandidateID'])"
+                    }
+                  }
+                },
+                "DistinctCandidateCount": {
+                  "runAfter": {
+                    "SelectExtractedLeadCandidateIDs": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@length(\r\n  union(\r\n    body('SelectCandidateIDs'),\r\n    body('SelectExtractedLeadCandidateIDs')\r\n  )\r\n)"
+                },
+                "Update_item": {
+                  "runAfter": {
+                    "FilterNonblankRegisteredQueryIDs": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                      "table": "2944f657-eb00-4751-bb03-afc58448d9aa",
+                      "id": "@first(body('Get_items')?['value'])?['ID']",
+                      "item/DiscoveryRunID": "@first(body('Get_items')?['value'])?['DiscoveryRunID']",
+                      "item/ScopeVersion": "@first(body('Get_items')?['value'])?['ScopeVersion']",
+                      "item/PlannedQueryCount": "@length(body('FilterNonblankRegisteredQueryIDs'))",
+                      "item/ExecutedQueryCount": "@length(body('FilterExecutedQueries'))",
+                      "item/ObservationCount": "@length(body('GetRunObservations')?['value'])",
+                      "item/CandidateCount": "@outputs('DistinctCandidateCount')",
+                      "item/ErrorCount": "@length(body('FilterErrorQueries'))"
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "operationId": "PatchItem",
+                      "connectionName": "shared_sharepointonline"
+                    }
+                  }
+                },
+                "Set_variable_2": {
+                  "runAfter": {
+                    "Update_item": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "SetVariable",
+                  "inputs": {
+                    "name": "RunSummaryResult",
+                    "value": "@concat(\r\n  'SUMMARY_REFRESHED: Registered queries (saved PlannedQueryCount): ',\r\n  string(length(body('FilterNonblankRegisteredQueryIDs'))),\r\n  '; executed queries: ',\r\n  string(length(body('FilterExecutedQueries'))),\r\n  '; observations: ',\r\n  string(length(body('GetRunObservations')?['value'])),\r\n  '; distinct linked candidates: ',\r\n  string(outputs('DistinctCandidateCount')),\r\n  '; queries with ERROR or TIMEOUT: ',\r\n  string(length(body('FilterErrorQueries'))),\r\n  '. Registered queries are distinct nonblank QueryRunIDs across saved query records and plan items, including drafts and any cancelled items. This count does not establish approval or execution readiness. Counters saved to the discovery run. Run status was not changed. This refresh does not confirm discovery completion.'\r\n)"
+                  }
+                },
+                "FilterLinkedExtractedLeads": {
+                  "runAfter": {
+                    "SelectCandidateIDs": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@body('GetRunExtractedLeads')?['value']",
+                    "where": "@and(\r\n  equals(item()?['LeadStatus']?['Value'], 'LINKED'),\r\n  not(empty(trim(coalesce(item()?['CandidateID'], ''))))\r\n)"
+                  }
+                },
+                "SelectExtractedLeadCandidateIDs": {
+                  "runAfter": {
+                    "FilterLinkedExtractedLeads": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@body('FilterLinkedExtractedLeads')",
+                    "select": {
+                      "CandidateID": "@trim(item()?['CandidateID'])"
+                    }
+                  }
+                },
+                "SelectRegisteredQueryIDs": {
+                  "runAfter": {
+                    "DistinctCandidateCount": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@body('GetRunQueries')?['value']",
+                    "select": {
+                      "QueryRunID": "@trim(coalesce(item()?['QueryRunID'],''))"
+                    }
+                  }
+                },
+                "SelectPlannedQueryIDs": {
+                  "runAfter": {
+                    "SelectRegisteredQueryIDs": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@body('GetRunPlanItems')?['value']",
+                    "select": {
+                      "QueryRunID": "@trim(coalesce(item()?['QueryRunID'],''))"
+                    }
+                  }
+                },
+                "DistinctRegisteredQueryIDs": {
+                  "runAfter": {
+                    "SelectPlannedQueryIDs": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Compose",
+                  "inputs": "@union(\r\n  body('SelectRegisteredQueryIDs'),\r\n  body('SelectPlannedQueryIDs')\r\n)"
+                },
+                "FilterNonblankRegisteredQueryIDs": {
+                  "runAfter": {
+                    "DistinctRegisteredQueryIDs": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@outputs('DistinctRegisteredQueryIDs')",
+                    "where": "@equals(empty(item()?['QueryRunID']),false)"
+                  }
+                }
+              },
+              "runAfter": {
+                "GetRunPlanItems": [
+                  "Succeeded"
+                ]
+              },
+              "else": {
+                "actions": {
+                  "Set_variable_1": {
+                    "type": "SetVariable",
+                    "inputs": {
+                      "name": "RunSummaryResult",
+                      "value": "RETRIEVAL_LIMIT_REACHED: Query, observation, extracted-lead, or plan-item retrieval reached the configured limit. Summary counters were not updated because the retrieved records may be incomplete."
+                    }
+                  }
+                }
+              },
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@and(\r\n  less(length(body('GetRunQueries')?['value']),5000),\r\n  less(length(body('GetRunObservations')?['value']),5000),\r\n  less(length(body('GetRunExtractedLeads')?['value']),5000),\r\n  less(length(body('GetRunPlanItems')?['value']),5000)\r\n)",
+                      "@true"
+                    ]
+                  }
+                ]
+              },
+              "type": "If"
+            },
+            "GetRunExtractedLeads": {
+              "runAfter": {
+                "GetRunObservations": [
+                  "Succeeded"
+                ]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                  "table": "d6e470cf-bb83-4f34-82fa-b0e4a9a67da2",
+                  "$filter": "@concat(\r\n  'DiscoveryRunID eq ''',\r\n  replace(triggerBody()?['text'], '''', ''''''),\r\n  ''''\r\n)",
+                  "$top": 5000
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "operationId": "GetItems",
+                  "connectionName": "shared_sharepointonline"
+                }
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            },
+            "GetRunPlanItems": {
+              "runAfter": {
+                "GetRunExtractedLeads": [
+                  "Succeeded"
+                ]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                  "table": "2fb96fa4-a56c-458e-816c-dbc7efb8aa2b",
+                  "$filter": "@concat(\r\n  'DiscoveryRunID eq ''',\r\n  replace(trim(triggerBody()?['text']),'''',''''''),\r\n  ''''\r\n)",
+                  "$top": 5000
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "operationId": "GetItems",
+                  "connectionName": "shared_sharepointonline"
+                }
+              },
+              "runtimeConfiguration": {
+                "paginationPolicy": {
+                  "minimumItemCount": 5000
+                }
+              }
+            }
+          },
+          "runAfter": {
+            "Get_items": [
+              "Succeeded"
+            ]
+          },
+          "else": {
+            "actions": {
+              "Set_variable": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "RunSummaryResult",
+                  "value": "@if(\r\n  equals(length(body('Get_items')?['value']), 0),\r\n  'NOT_FOUND: No discovery run matches the supplied DiscoveryRunID. No summary fields were updated.',\r\n  'DUPLICATE_DISCOVERY_RUN_ID: Multiple discovery runs match the supplied DiscoveryRunID. No summary fields were updated. Resolve the duplicate records before continuing.'\r\n)"
+                }
+              }
+            }
+          },
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@length(body('Get_items')?['value'])",
+                  1
+                ]
+              }
+            ]
+          },
+          "type": "If"
+        }
+      },
+      "outputs": {}
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

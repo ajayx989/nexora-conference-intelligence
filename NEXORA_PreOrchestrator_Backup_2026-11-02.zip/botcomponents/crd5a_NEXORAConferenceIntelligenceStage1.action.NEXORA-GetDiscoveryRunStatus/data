@@ -1,0 +1,19 @@
+kind: TaskDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: text
+    description: The exact DiscoveryRunID of the existing run the user wants to check. Extract only the identifier from the user's message or an unambiguous reference in the conversation. Preserve its characters and hyphens. Do not pass the whole question, invent an ID, or use an example as a default. If the ID is missing or ambiguous, ask the user which DiscoveryRunID to look up.
+
+modelDescription: Look up the saved status and details of an existing NEXORA discovery run in SharePoint using its DiscoveryRunID. Use when the user asks for a run's status, progress, counts, or saved details. Obtain the exact DiscoveryRunID from the user or conversation; ask if it is missing and never invent it. This tool only reads an existing run. It does not start discovery, execute searches, save candidates, or record Gate 1 approval. Report NOT_FOUND or DUPLICATE_RUN_ID accurately when returned.
+outputs:
+  - propertyName: runlookupresult
+
+action:
+  kind: InvokeFlowTaskAction
+  flowId: 96cce44e-0dce-f111-a05a-000d3af29067
+  connectionProperties:
+    $kind: ConnectionProperties
+    diagnostics:
+    mode: Invoker
+
+outputMode: All

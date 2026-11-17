@@ -1,0 +1,19 @@
+kind: TaskDialog
+inputs:
+  - kind: AutomaticTaskInput
+    propertyName: text
+    description: Use the exact DiscoveryRunID supplied by the user or returned by a successful tool call for the intended run. Preserve the full ID, including hyphens. Never invent an ID or substitute a run title, QueryRunID, CandidateID, or SharePoint item ID. If the intended run is unclear or no ID is available, ask the user for DiscoveryRunID before calling this tool.
+
+modelDescription: Processes up to 10 pending NEW observations without candidate links for an existing DiscoveryRunID. Uses exact trimmed URL matching to create or reuse candidate records and link observations. Use only when the user requests normalization of saved observations. Run one call at a time; never start overlapping normalization calls or retry automatically after an error, timeout, or uncertain outcome. Report the returned counts accurately as run-wide observation totals, not distinct candidate counts. After processing, refresh the same run's summary. Does not execute searches, verify candidates, change run status, approve Gate 1, or confirm discovery completion. Ask for DiscoveryRunID if missing.
+outputs:
+  - propertyName: normalizationresult
+
+action:
+  kind: InvokeFlowTaskAction
+  flowId: b08af7e9-04cf-f111-a05b-000d3a0aa2f5
+  connectionProperties:
+    $kind: ConnectionProperties
+    diagnostics:
+    mode: Invoker
+
+outputMode: All

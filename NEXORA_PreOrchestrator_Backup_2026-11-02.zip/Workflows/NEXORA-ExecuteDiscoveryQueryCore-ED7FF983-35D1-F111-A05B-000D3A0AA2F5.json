@@ -1,0 +1,822 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_4711d"
+        },
+        "api": {
+          "name": "shared_sharepointonline"
+        }
+      }
+    },
+    "definition": {
+      "metadata": {
+        "defaultToEmbeddedConnections": true
+      },
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Button",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "description": "Exact saved discovery run ID. The run must already be RUNNING. This flow does not change run status.",
+                  "title": "DiscoveryRunID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_1": {
+                  "description": "Exact query pack key from the approved plan item. The pack must be enabled and configured for TAVILY_API.",
+                  "title": "QueryPackKey",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_2": {
+                  "description": "Exact fully expanded query text from the approved snapshot. Do not rewrite or expand it.",
+                  "title": "QueryText",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_3": {
+                  "description": "Reserved query execution ID from the approved plan item. Reuse this ID when checking an uncertain outcome; do not generate a replacement.",
+                  "title": "QueryRunID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                },
+                "text_4": {
+                  "description": "Exact saved approval request ID authorizing this query. The recorded approval and current plan item must pass validation.",
+                  "title": "ApprovalRequestID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "required": [
+                "text",
+                "text_1",
+                "text_2",
+                "text_3",
+                "text_4"
+              ]
+            }
+          }
+        }
+      },
+      "actions": {
+        "Get_items": {
+          "runAfter": {
+            "ExecutionPlanItemValid": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "2944f657-eb00-4751-bb03-afc58448d9aa",
+              "$filter": "@concat('DiscoveryRunID eq ''', trim(triggerBody()?['text']), '''')",
+              "$top": 2
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "operationId": "GetItems",
+              "connectionName": "shared_sharepointonline"
+            }
+          }
+        },
+        "Condition": {
+          "actions": {
+            "Condition_1": {
+              "actions": {
+                "Get_items_1": {
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                      "table": "c88470c1-cd6d-4599-9a8c-025938e989b0",
+                      "$filter": "@concat('QueryRunID eq ''', trim(triggerBody()?['text_3']), '''')",
+                      "$top": 2
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "operationId": "GetItems",
+                      "connectionName": "shared_sharepointonline"
+                    }
+                  }
+                },
+                "Condition_2": {
+                  "actions": {
+                    "Create_item": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                          "table": "c88470c1-cd6d-4599-9a8c-025938e989b0",
+                          "item/QueryRunID": "@triggerBody()?['text_3']",
+                          "item/DiscoveryRunID": "@triggerBody()?['text']",
+                          "item/QueryPackKey": "@triggerBody()?['text_1']",
+                          "item/QueryText": "@triggerBody()?['text_2']",
+                          "item/ProviderName": "TAVILY_API",
+                          "item/QueryStatus/Value": "PLANNED",
+                          "item/IngestedCount": 0,
+                          "item/AttemptCount": 0
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "operationId": "PostItem",
+                          "connectionName": "shared_sharepointonline"
+                        }
+                      }
+                    },
+                    "ExecuteSearch": {
+                      "actions": {
+                        "Update_item": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                              "table": "c88470c1-cd6d-4599-9a8c-025938e989b0",
+                              "id": "@outputs('Create_item')?['body/ID']",
+                              "item/QueryRunID": "@triggerBody()?['text_3']",
+                              "item/DiscoveryRunID": "@triggerBody()?['text']",
+                              "item/QueryPackKey": "@triggerBody()?['text_1']",
+                              "item/QueryText": "@triggerBody()?['text_2']",
+                              "item/ProviderName": "TAVILY_API",
+                              "item/QueryStatus/Value": "RUNNING",
+                              "item/StartedAt": "@utcNow()",
+                              "item/IngestedCount": 0,
+                              "item/AttemptCount": 1
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "operationId": "PatchItem",
+                              "connectionName": "shared_sharepointonline"
+                            }
+                          }
+                        },
+                        "HTTP": {
+                          "runAfter": {
+                            "MarkPlanItemInProgress": [
+                              "Succeeded"
+                            ]
+                          },
+                          "type": "Http",
+                          "inputs": {
+                            "uri": "https://api.tavily.com/search",
+                            "method": "POST",
+                            "headers": {
+                              "Content-Type": "application/json",
+                              "Authorization": "Bearer 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"
+                            },
+                            "body": "@setProperty(\r\n  json('{\"topic\":\"general\",\"search_depth\":\"basic\",\"max_results\":5,\"include_answer\":false,\"include_raw_content\":false}'),\r\n  'query',\r\n  triggerBody()?['text_2']\r\n)",
+                            "retryPolicy": {
+                              "type": "none"
+                            }
+                          },
+                          "runtimeConfiguration": {
+                            "contentTransfer": {
+                              "transferMode": "Chunked"
+                            },
+                            "secureData": {
+                              "properties": [
+                                "inputs"
+                              ]
+                            }
+                          }
+                        },
+                        "Parse_JSON": {
+                          "runAfter": {
+                            "HTTP": [
+                              "Succeeded"
+                            ]
+                          },
+                          "type": "ParseJson",
+                          "inputs": {
+                            "content": "@body('HTTP')",
+                            "schema": {
+                              "type": "object",
+                              "properties": {
+                                "results": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "title": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "url": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "content": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "score": {
+                                        "type": [
+                                          "number",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "required": [
+                                "results"
+                              ]
+                            }
+                          }
+                        },
+                        "Apply_to_each": {
+                          "foreach": "@body('Parse_JSON')?['results']",
+                          "actions": {
+                            "Create_item_1": {
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                  "table": "1d3e1f9f-c804-4b59-8af9-6ffaa5d40e37",
+                                  "item/ObservationID": "@concat('OBS-', guid())",
+                                  "item/DiscoveryRunID": "@triggerBody()?['text']",
+                                  "item/QueryRunID": "@triggerBody()?['text_3']",
+                                  "item/QueryPackKey": "@triggerBody()?['text_1']",
+                                  "item/RetrievedAt": "@utcNow()",
+                                  "item/ProcessingNotes": "Raw Tavily search result. Not normalized or verified.",
+                                  "item/TitleRaw": "@coalesce(item()?['title'], '')",
+                                  "item/ResultURL": "@coalesce(item()?['url'], '')\r\n",
+                                  "item/Snippet": "@coalesce(item()?['content'], '')",
+                                  "item/ProviderName": "TAVILY_API",
+                                  "item/IngestionStatus/Value": "NEW",
+                                  "item/ProvisionalSourceClass/Value": "UNKNOWN"
+                                },
+                                "host": {
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                  "operationId": "PostItem",
+                                  "connectionName": "shared_sharepointonline"
+                                }
+                              }
+                            },
+                            "Increment_variable": {
+                              "runAfter": {
+                                "Create_item_1": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "IncrementVariable",
+                              "inputs": {
+                                "name": "SavedObservationCount",
+                                "value": 1
+                              }
+                            }
+                          },
+                          "runAfter": {
+                            "Parse_JSON": [
+                              "Succeeded"
+                            ]
+                          },
+                          "type": "Foreach"
+                        },
+                        "Update_item_1": {
+                          "runAfter": {
+                            "Apply_to_each": [
+                              "Succeeded"
+                            ]
+                          },
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                              "table": "c88470c1-cd6d-4599-9a8c-025938e989b0",
+                              "id": "@outputs('Create_item')?['body/ID']",
+                              "item/QueryRunID": "@triggerBody()?['text_3']",
+                              "item/DiscoveryRunID": "@triggerBody()?['text']",
+                              "item/QueryPackKey": "@triggerBody()?['text_1']",
+                              "item/QueryText": "@triggerBody()?['text_2']",
+                              "item/ProviderName": "TAVILY_API",
+                              "item/QueryStatus/Value": "@if(equals(length(body('Parse_JSON')?['results']), 0), 'NO_RESULTS', 'COMPLETE')",
+                              "item/CompletedAt": "@utcNow()",
+                              "item/ResultCount": "@length(body('Parse_JSON')?['results'])",
+                              "item/IngestedCount": "@variables('SavedObservationCount')",
+                              "item/AttemptCount": 1
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "operationId": "PatchItem",
+                              "connectionName": "shared_sharepointonline"
+                            }
+                          }
+                        },
+                        "Set_variable": {
+                          "runAfter": {
+                            "MarkPlanItemCompleted": [
+                              "Succeeded"
+                            ]
+                          },
+                          "type": "SetVariable",
+                          "inputs": {
+                            "name": "QueryExecutionResult",
+                            "value": "@concat(\r\n  if(equals(length(body('Parse_JSON')?['results']), 0), 'NO_RESULTS', 'COMPLETE'),\r\n  ': Tavily returned ',\r\n  string(length(body('Parse_JSON')?['results'])),\r\n  ' results. Successfully saved ',\r\n  string(variables('SavedObservationCount')),\r\n  ' raw observations. Query record updated. This outcome applies to this query only; overall discovery is not complete.'\r\n)"
+                          }
+                        },
+                        "MarkPlanItemInProgress": {
+                          "runAfter": {
+                            "Update_item": [
+                              "Succeeded"
+                            ]
+                          },
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                              "table": "2fb96fa4-a56c-458e-816c-dbc7efb8aa2b",
+                              "id": "@first(body('LookupExecutionPlanItem')?['value'])?['ID']",
+                              "item/PlanItemID": "@first(body('LookupExecutionPlanItem')?['value'])?['PlanItemID']",
+                              "item/DiscoveryRunID": "@first(body('LookupExecutionPlanItem')?['value'])?['DiscoveryRunID']",
+                              "item/QueryPackKey": "@first(body('LookupExecutionPlanItem')?['value'])?['QueryPackKey']",
+                              "item/QueryText": "@first(body('LookupExecutionPlanItem')?['value'])?['QueryText']",
+                              "item/QueryRunID": "@first(body('LookupExecutionPlanItem')?['value'])?['QueryRunID']",
+                              "item/PlanVersion": "@first(body('LookupExecutionPlanItem')?['value'])?['PlanVersion']",
+                              "item/ScopeVersion": "@first(body('LookupExecutionPlanItem')?['value'])?['ScopeVersion']",
+                              "item/ProviderName": "@first(body('LookupExecutionPlanItem')?['value'])?['ProviderName']",
+                              "item/MaxResults": "@first(body('LookupExecutionPlanItem')?['value'])?['MaxResults']",
+                              "item/PlanStatus/Value": "IN_PROGRESS",
+                              "item/ExecutionStartedAt": "@utcNow()",
+                              "item/ExecutionOutcome": "Execution preparation started after approved-plan checks. Search completion is not yet confirmed."
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "operationId": "PatchItem",
+                              "connectionName": "shared_sharepointonline"
+                            }
+                          }
+                        },
+                        "MarkPlanItemCompleted": {
+                          "runAfter": {
+                            "Update_item_1": [
+                              "Succeeded"
+                            ]
+                          },
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                              "table": "2fb96fa4-a56c-458e-816c-dbc7efb8aa2b",
+                              "id": "@first(body('LookupExecutionPlanItem')?['value'])?['ID']",
+                              "item/PlanItemID": "@first(body('LookupExecutionPlanItem')?['value'])?['PlanItemID']",
+                              "item/DiscoveryRunID": "@first(body('LookupExecutionPlanItem')?['value'])?['DiscoveryRunID']",
+                              "item/QueryPackKey": "@first(body('LookupExecutionPlanItem')?['value'])?['QueryPackKey']",
+                              "item/QueryText": "@first(body('LookupExecutionPlanItem')?['value'])?['QueryText']",
+                              "item/QueryRunID": "@first(body('LookupExecutionPlanItem')?['value'])?['QueryRunID']",
+                              "item/PlanVersion": "@first(body('LookupExecutionPlanItem')?['value'])?['PlanVersion']",
+                              "item/ScopeVersion": "@first(body('LookupExecutionPlanItem')?['value'])?['ScopeVersion']",
+                              "item/ProviderName": "@first(body('LookupExecutionPlanItem')?['value'])?['ProviderName']",
+                              "item/MaxResults": "@first(body('LookupExecutionPlanItem')?['value'])?['MaxResults']",
+                              "item/PlanStatus/Value": "@if(equals(length(body('Parse_JSON')?['results']),0),'NO_RESULTS','COMPLETE')",
+                              "item/ExecutionCompletedAt": "@utcNow()",
+                              "item/ExecutionOutcome": "@concat(\r\n  'Query execution finished. Tavily results: ',\r\n  string(length(body('Parse_JSON')?['results'])),\r\n  '; saved raw observations: ',\r\n  string(variables('SavedObservationCount')),\r\n  '. Overall discovery completion is not confirmed.'\r\n)"
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "operationId": "PatchItem",
+                              "connectionName": "shared_sharepointonline"
+                            }
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "Create_item": [
+                          "Succeeded"
+                        ]
+                      },
+                      "type": "Scope"
+                    },
+                    "HandleSearchFailure": {
+                      "actions": {
+                        "Update_item_2": {
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                              "table": "c88470c1-cd6d-4599-9a8c-025938e989b0",
+                              "id": "@outputs('Create_item')?['body/ID']",
+                              "item/QueryRunID": "@triggerBody()?['text_3']",
+                              "item/DiscoveryRunID": "@triggerBody()?['text']",
+                              "item/QueryPackKey": "@triggerBody()?['text_1']",
+                              "item/QueryText": "@triggerBody()?['text_2']",
+                              "item/ProviderName": "TAVILY_API",
+                              "item/QueryStatus/Value": "@if(or(equals(actions('ExecuteSearch')?['status'], 'TimedOut'), equals(actions('HTTP')?['status'], 'TimedOut')), 'TIMEOUT', 'ERROR')",
+                              "item/CompletedAt": "@utcNow()",
+                              "item/IngestedCount": "@variables('SavedObservationCount')",
+                              "item/ErrorMessage": "Search execution or observation saving failed or timed out. Some observations may already have been saved. Check the flow run history before retrying."
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "operationId": "PatchItem",
+                              "connectionName": "shared_sharepointonline"
+                            }
+                          }
+                        },
+                        "Set_variable_1": {
+                          "runAfter": {
+                            "MarkPlanItemError": [
+                              "Succeeded",
+                              "TimedOut",
+                              "Skipped",
+                              "Failed"
+                            ]
+                          },
+                          "type": "SetVariable",
+                          "inputs": {
+                            "name": "QueryExecutionResult",
+                            "value": "@concat(\r\n  if(\r\n    or(\r\n      equals(actions('ExecuteSearch')?['status'], 'TimedOut'),\r\n      equals(actions('HTTP')?['status'], 'TimedOut')\r\n    ),\r\n    'TIMEOUT',\r\n    'ERROR'\r\n  ),\r\n  ': Search execution or observation saving did not complete successfully. Successfully saved ',\r\n  string(variables('SavedObservationCount')),\r\n  ' raw observations before failure handling. Query record updated. Check the flow run history before retrying; do not automatically rerun this query.'\r\n)"
+                          }
+                        },
+                        "MarkPlanItemError": {
+                          "runAfter": {
+                            "Update_item_2": [
+                              "Succeeded"
+                            ]
+                          },
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                              "table": "2fb96fa4-a56c-458e-816c-dbc7efb8aa2b",
+                              "id": "@first(body('LookupExecutionPlanItem')?['value'])?['ID']",
+                              "item/PlanItemID": "@first(body('LookupExecutionPlanItem')?['value'])?['PlanItemID']",
+                              "item/DiscoveryRunID": "@first(body('LookupExecutionPlanItem')?['value'])?['DiscoveryRunID']",
+                              "item/QueryPackKey": "@first(body('LookupExecutionPlanItem')?['value'])?['QueryPackKey']",
+                              "item/QueryText": "@first(body('LookupExecutionPlanItem')?['value'])?['QueryText']",
+                              "item/QueryRunID": "@first(body('LookupExecutionPlanItem')?['value'])?['QueryRunID']",
+                              "item/PlanVersion": "@first(body('LookupExecutionPlanItem')?['value'])?['PlanVersion']",
+                              "item/ScopeVersion": "@first(body('LookupExecutionPlanItem')?['value'])?['ScopeVersion']",
+                              "item/ProviderName": "@first(body('LookupExecutionPlanItem')?['value'])?['ProviderName']",
+                              "item/MaxResults": "@first(body('LookupExecutionPlanItem')?['value'])?['MaxResults']",
+                              "item/PlanStatus/Value": "ERROR",
+                              "item/ExecutionCompletedAt": "@utcNow()",
+                              "item/ExecutionOutcome": "@concat(\r\n  'Execution processing failed or timed out. Saved raw observations before failure handling: ',\r\n  string(variables('SavedObservationCount')),\r\n  '. Search outcome may be partial or uncertain. Inspect query records and flow history before retrying.'\r\n)"
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "operationId": "PatchItem",
+                              "connectionName": "shared_sharepointonline"
+                            }
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "ExecuteSearch": [
+                          "TimedOut",
+                          "Failed"
+                        ]
+                      },
+                      "type": "Scope"
+                    }
+                  },
+                  "runAfter": {
+                    "LookupQueryPack": [
+                      "Succeeded"
+                    ]
+                  },
+                  "else": {
+                    "actions": {
+                      "Set_variable_3": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "QueryExecutionResult",
+                          "value": "@if(\r\n  greater(length(body('Get_items_1')?['value']), 0),\r\n  'DUPLICATE_QUERY_RUN_ID: A query record already exists for the supplied QueryRunID. No new search was executed by this request. Review the existing query record before taking further action.',\r\n  'BLOCKED_QUERY_PACK: The supplied QueryPackKey must match exactly one enabled query pack with ProviderPreference set to TAVILY_API. No search was executed and no query record was created.'\r\n)"
+                        }
+                      }
+                    }
+                  },
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@length(body('Get_items_1')?['value'])",
+                          0
+                        ]
+                      },
+                      {
+                        "equals": [
+                          "@if(\r\n  equals(length(body('LookupQueryPack')?['value']), 1),\r\n  and(\r\n    equals(first(body('LookupQueryPack')?['value'])?['IsEnabled'], true),\r\n    equals(first(body('LookupQueryPack')?['value'])?['ProviderPreference'], 'TAVILY_API')\r\n  ),\r\n  false\r\n)",
+                          "@true"
+                        ]
+                      }
+                    ]
+                  },
+                  "type": "If"
+                },
+                "LookupQueryPack": {
+                  "runAfter": {
+                    "Get_items_1": [
+                      "Succeeded"
+                    ]
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "parameters": {
+                      "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                      "table": "d6c949a9-d1f0-4a24-b45c-ba0d4aaa1b7a",
+                      "$filter": "@concat('QueryPackKey eq ''', trim(triggerBody()?['text_1']), '''')",
+                      "$top": 2
+                    },
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "operationId": "GetItems",
+                      "connectionName": "shared_sharepointonline"
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Set_variable_2": {
+                    "type": "SetVariable",
+                    "inputs": {
+                      "name": "QueryExecutionResult",
+                      "value": "@if(\r\n  not(equals(first(body('Get_items')?['value'])?['RunStatus']?['Value'],'RUNNING')),\r\n  'BLOCKED_RUN_STATUS: The discovery run is not in RUNNING status. No search was executed and no query record was created.',\r\n  'BLOCKED_PLAN_APPROVAL: The request did not pass the approved-plan execution checks. No search was executed and no query record was created. Review the approval, exact query, current plan item, and scope before proceeding.'\r\n)"
+                    }
+                  }
+                }
+              },
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@first(body('Get_items')?['value'])?['RunStatus']?['Value']",
+                      "RUNNING"
+                    ]
+                  },
+                  {
+                    "equals": [
+                      "@outputs('ExecutionApprovalMatchesRun')",
+                      "@true"
+                    ]
+                  }
+                ]
+              },
+              "type": "If"
+            }
+          },
+          "runAfter": {
+            "ExecutionApprovalMatchesRun": [
+              "Succeeded"
+            ]
+          },
+          "else": {
+            "actions": {
+              "Set_variable_4": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "QueryExecutionResult",
+                  "value": "@if(\r\n  equals(length(body('Get_items')?['value']), 0),\r\n  'NOT_FOUND: No discovery run matches the supplied DiscoveryRunID. No search was executed and no query record was created.',\r\n  'DUPLICATE_DISCOVERY_RUN_ID: Multiple discovery runs match the supplied DiscoveryRunID. No search was executed and no query record was created. Resolve the duplicate records before continuing.'\r\n)"
+                }
+              }
+            }
+          },
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@length(body('Get_items')?['value'])",
+                  1
+                ]
+              }
+            ]
+          },
+          "type": "If"
+        },
+        "Initialize_variable": {
+          "runAfter": {},
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "SavedObservationCount",
+                "type": "integer",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "Initialize_variable_1": {
+          "runAfter": {
+            "Initialize_variable": [
+              "Succeeded"
+            ]
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "QueryExecutionResult",
+                "type": "string",
+                "value": "NOT_COMPLETED: Query execution has not reached a confirmed outcome."
+              }
+            ]
+          }
+        },
+        "LookupExecutionApprovalRequest": {
+          "runAfter": {
+            "Initialize_variable_1": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "b5aba1ab-263a-4a28-97bb-b97e8c32525d",
+              "$filter": "@concat('ApprovalRequestID eq ''', trim(triggerBody()?['text_4']), '''')",
+              "$top": 2
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "operationId": "GetItems",
+              "connectionName": "shared_sharepointonline"
+            }
+          }
+        },
+        "ExecutionApprovalLookupValid": {
+          "runAfter": {
+            "LookupExecutionApprovalDecision": [
+              "Succeeded"
+            ]
+          },
+          "type": "Compose",
+          "inputs": "@{and(equals(length(body('LookupExecutionApprovalRequest')?['value']),1),equals(length(body('LookupExecutionApprovalDecision')?['value']),1))}\n"
+        },
+        "ExecutionApprovalRecordsValid": {
+          "runAfter": {
+            "ExecutionApprovalLookupValid": [
+              "Succeeded"
+            ]
+          },
+          "type": "Compose",
+          "inputs": "@if(\r\n  and(\r\n  equals(length(body('LookupExecutionApprovalRequest')?['value']),1),\r\n  equals(length(body('LookupExecutionApprovalDecision')?['value']),1)\r\n),\r\n  and(\r\n    equals(first(body('LookupExecutionApprovalRequest')?['value'])?['RequestStatus']?['Value'],'APPROVED'),\r\n    equals(first(body('LookupExecutionApprovalDecision')?['value'])?['Decision']?['Value'],'APPROVED'),\r\n    equals(\r\n      first(body('LookupExecutionApprovalRequest')?['value'])?['ApprovalRequestID'],\r\n      first(body('LookupExecutionApprovalDecision')?['value'])?['ApprovalRequestID']\r\n    ),\r\n    equals(\r\n      first(body('LookupExecutionApprovalRequest')?['value'])?['DiscoveryRunID'],\r\n      first(body('LookupExecutionApprovalDecision')?['value'])?['DiscoveryRunID']\r\n    ),\r\n    equals(\r\n      first(body('LookupExecutionApprovalRequest')?['value'])?['PlanVersion'],\r\n      first(body('LookupExecutionApprovalDecision')?['value'])?['PlanVersion']\r\n    ),\r\n    not(empty(first(body('LookupExecutionApprovalRequest')?['value'])?['PlanSnapshot'])),\r\n    equals(\r\n      first(body('LookupExecutionApprovalRequest')?['value'])?['PlanSnapshot'],\r\n      first(body('LookupExecutionApprovalDecision')?['value'])?['PlanSnapshot']\r\n    ),\r\n    not(empty(first(body('LookupExecutionApprovalDecision')?['value'])?['DecisionAt'])),\r\n    not(empty(first(body('LookupExecutionApprovalRequest')?['value'])?['AssignedReviewer']?['Email'])),\r\n    equals(\r\n      toLower(coalesce(first(body('LookupExecutionApprovalRequest')?['value'])?['AssignedReviewer']?['Email'],'')),\r\n      toLower(coalesce(first(body('LookupExecutionApprovalDecision')?['value'])?['DecisionBy']?['Email'],''))\r\n    )\r\n  ),\r\n  false\r\n)"
+        },
+        "LookupExecutionApprovalDecision": {
+          "runAfter": {
+            "LookupExecutionApprovalRequest": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "dba5e7fe-f43a-411f-aefc-d45f29e2b2ea",
+              "$filter": "@concat('ApprovalRequestID eq ''', trim(triggerBody()?['text_4']), '''')",
+              "$top": 2
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "operationId": "GetItems",
+              "connectionName": "shared_sharepointonline"
+            }
+          }
+        },
+        "ReadExecutionApprovalSnapshot": {
+          "runAfter": {
+            "ExecutionApprovalRecordsValid": [
+              "Succeeded"
+            ]
+          },
+          "type": "Compose",
+          "inputs": "@if(\r\n  outputs('ExecutionApprovalRecordsValid'),\r\n  json(first(body('LookupExecutionApprovalDecision')?['value'])?['PlanSnapshot']),\r\n  json('{\"PlanItems\":[]}')\r\n)"
+        },
+        "ExecutionSnapshotValid": {
+          "runAfter": {
+            "ReadExecutionApprovalSnapshot": [
+              "Succeeded"
+            ]
+          },
+          "type": "Compose",
+          "inputs": "@and(\r\n  outputs('ExecutionApprovalRecordsValid'),\r\n  equals(outputs('ReadExecutionApprovalSnapshot')?['SnapshotType'],'DISCOVERY_PLAN_EXECUTION_APPROVAL'),\r\n  equals(outputs('ReadExecutionApprovalSnapshot')?['SnapshotSchemaVersion'],'1.0'),\r\n  greater(length(coalesce(outputs('ReadExecutionApprovalSnapshot')?['PlanItems'],json('[]'))),0),\r\n  lessOrEquals(length(coalesce(outputs('ReadExecutionApprovalSnapshot')?['PlanItems'],json('[]'))),50),\r\n  equals(\r\n    outputs('ReadExecutionApprovalSnapshot')?['PlanItemCount'],\r\n    length(coalesce(outputs('ReadExecutionApprovalSnapshot')?['PlanItems'],json('[]')))\r\n  )\r\n)"
+        },
+        "FilterApprovedQueryMatch": {
+          "runAfter": {
+            "ExecutionSnapshotValid": [
+              "Succeeded"
+            ]
+          },
+          "type": "Query",
+          "inputs": {
+            "from": "@coalesce(outputs('ReadExecutionApprovalSnapshot')?['PlanItems'],json('[]'))",
+            "where": "@equals(and(\r\n  outputs('ExecutionSnapshotValid'),\r\n  equals(item()?['DiscoveryRunID'],triggerBody()?['text']),\r\n  equals(item()?['QueryPackKey'],triggerBody()?['text_1']),\r\n  equals(item()?['QueryText'],triggerBody()?['text_2']),\r\n  equals(item()?['QueryRunID'],triggerBody()?['text_3']),\r\n  equals(\r\n    item()?['DiscoveryRunID'],\r\n    first(body('LookupExecutionApprovalRequest')?['value'])?['DiscoveryRunID']\r\n  ),\r\n  equals(\r\n    item()?['PlanVersion'],\r\n    first(body('LookupExecutionApprovalRequest')?['value'])?['PlanVersion']\r\n  ),\r\n  equals(item()?['ProviderName'],'TAVILY_API'),\r\n  equals(item()?['MaxResults'],5),\r\n  not(empty(trim(coalesce(item()?['PlanItemID'],''))))\r\n),true)"
+          }
+        },
+        "LookupExecutionPlanItem": {
+          "runAfter": {
+            "FilterApprovedQueryMatch": [
+              "Succeeded"
+            ]
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "2fb96fa4-a56c-458e-816c-dbc7efb8aa2b",
+              "$filter": "@concat('QueryRunID eq ''', trim(triggerBody()?['text_3']), '''')",
+              "$top": 2
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "operationId": "GetItems",
+              "connectionName": "shared_sharepointonline"
+            }
+          }
+        },
+        "ExecutionQueryMatchUnique": {
+          "runAfter": {
+            "LookupExecutionPlanItem": [
+              "Succeeded"
+            ]
+          },
+          "type": "Compose",
+          "inputs": "@and(\r\n  outputs('ExecutionSnapshotValid'),\r\n  equals(length(body('FilterApprovedQueryMatch')),1),\r\n  equals(length(body('LookupExecutionPlanItem')?['value']),1)\r\n)"
+        },
+        "ExecutionPlanItemValid": {
+          "runAfter": {
+            "ExecutionQueryMatchUnique": [
+              "Succeeded"
+            ]
+          },
+          "type": "Compose",
+          "inputs": "@if(\r\n  outputs('ExecutionQueryMatchUnique'),\r\n  and(\r\n    equals(\r\n      first(body('LookupExecutionPlanItem')?['value'])?['PlanItemID'],\r\n      first(body('FilterApprovedQueryMatch'))?['PlanItemID']\r\n    ),\r\n    equals(\r\n      first(body('LookupExecutionPlanItem')?['value'])?['DiscoveryRunID'],\r\n      first(body('FilterApprovedQueryMatch'))?['DiscoveryRunID']\r\n    ),\r\n    equals(\r\n      first(body('LookupExecutionPlanItem')?['value'])?['PlanVersion'],\r\n      first(body('FilterApprovedQueryMatch'))?['PlanVersion']\r\n    ),\r\n    equals(\r\n      first(body('LookupExecutionPlanItem')?['value'])?['ScopeVersion'],\r\n      first(body('FilterApprovedQueryMatch'))?['ScopeVersion']\r\n    ),\r\n    equals(\r\n      first(body('LookupExecutionPlanItem')?['value'])?['QueryPackKey'],\r\n      first(body('FilterApprovedQueryMatch'))?['QueryPackKey']\r\n    ),\r\n    equals(\r\n      first(body('LookupExecutionPlanItem')?['value'])?['QueryText'],\r\n      first(body('FilterApprovedQueryMatch'))?['QueryText']\r\n    ),\r\n    equals(\r\n      first(body('LookupExecutionPlanItem')?['value'])?['QueryRunID'],\r\n      first(body('FilterApprovedQueryMatch'))?['QueryRunID']\r\n    ),\r\n    equals(first(body('LookupExecutionPlanItem')?['value'])?['ProviderName'],'TAVILY_API'),\r\n    equals(first(body('LookupExecutionPlanItem')?['value'])?['MaxResults'],5),\r\n    or(\r\n      equals(first(body('LookupExecutionPlanItem')?['value'])?['PlanStatus']?['Value'],'DRAFT'),\r\n      equals(first(body('LookupExecutionPlanItem')?['value'])?['PlanStatus']?['Value'],'APPROVED')\r\n    ),\r\n    empty(first(body('LookupExecutionPlanItem')?['value'])?['ExecutionStartedAt']),\r\n    empty(first(body('LookupExecutionPlanItem')?['value'])?['ExecutionCompletedAt'])\r\n  ),\r\n  false\r\n)"
+        },
+        "ExecutionApprovalMatchesRun": {
+          "runAfter": {
+            "Get_items": [
+              "Succeeded"
+            ]
+          },
+          "type": "Compose",
+          "inputs": "@if(\r\n  equals(length(body('Get_items')?['value']),1),\r\n  and(\r\n    outputs('ExecutionPlanItemValid'),\r\n    not(empty(first(body('Get_items')?['value'])?['ScopeVersion'])),\r\n    equals(\r\n      first(body('LookupExecutionPlanItem')?['value'])?['ScopeVersion'],\r\n      first(body('Get_items')?['value'])?['ScopeVersion']\r\n    ),\r\n    equals(\r\n      first(body('LookupExecutionApprovalRequest')?['value'])?['ApprovalRequestID'],\r\n      triggerBody()?['text_4']\r\n    )\r\n  ),\r\n  false\r\n)"
+        },
+        "Respond_to_a_Power_App_or_flow": {
+          "runAfter": {
+            "Condition": [
+              "Succeeded",
+              "TimedOut",
+              "Skipped",
+              "Failed"
+            ]
+          },
+          "type": "Response",
+          "kind": "PowerApp",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "queryexecutionresult": {
+                  "title": "QueryExecutionResult",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "additionalProperties": {}
+            },
+            "statusCode": 200,
+            "body": {
+              "queryexecutionresult": "@{variables('QueryExecutionResult')}"
+            }
+          }
+        }
+      },
+      "outputs": {}
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

@@ -1,0 +1,14 @@
+kind: TaskDialog
+modelDescription: Queues a human approval request for an existing discovery plan. Requires the exact DiscoveryRunID, PlanVersion, and a unique ApprovalRequestID. Use only when the user explicitly requests plan approval submission. If an input is missing, ask for it. The background flow sends the saved plan snapshot to its assigned reviewer and records their decision. APPROVAL_REQUEST_QUEUED confirms only that the request was saved; it does not confirm delivery, approval, or execution. If APPROVAL_REQUEST_ID_EXISTS is returned, inspect the existing request rather than automatically retrying with a different ID. This tool does not execute searches, change run status, or approve Gate 1.
+outputs:
+  - propertyName: planapprovalrequestresult
+
+action:
+  kind: InvokeFlowTaskAction
+  flowId: 0288426f-abcf-f111-a05b-000d3a0aa2f5
+  connectionProperties:
+    $kind: ConnectionProperties
+    diagnostics:
+    mode: Invoker
+
+outputMode: All

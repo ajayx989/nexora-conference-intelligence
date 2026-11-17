@@ -1,0 +1,19 @@
+kind: TaskDialog
+modelDescription: |-
+  Records a possible duplicate pair for human review. Requires exact DiscoveryRunID, two different saved CandidateIDs, and an evidence-based DuplicateRationale. Both candidates must be linked to the run through observations or LINKED extracted leads.
+
+  Saves the pair as UNREVIEWED. Input order does not matter; an existing pair blocks another record. Does not confirm duplicate identity, merge or change candidates, execute searches, or approve any gate.
+
+  Use only when asked to record a suspected duplicate. Never invent IDs or present the rationale as verified fact. Report success only for POSSIBLE_DUPLICATE_PAIR_SAVED. For duplicate, blocked, or uncertain outcomes, report the result without automatic retry.
+outputs:
+  - propertyName: duplicatepairresult
+
+action:
+  kind: InvokeFlowTaskAction
+  flowId: c6049105-71d3-f111-a05b-002248d5b537
+  connectionProperties:
+    $kind: ConnectionProperties
+    diagnostics:
+    mode: Invoker
+
+outputMode: All

@@ -1,0 +1,307 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "api": {
+          "name": "shared_sharepointonline"
+        },
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_4711d"
+        },
+        "runtimeSource": "embedded"
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "description": "The exact ID of an existing NEXORA plan approval request, such as TEST-APR-003. Used to retrieve its saved status and any recorded decision. Do not generate a new ID.",
+                  "title": "ApprovalRequestID",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "required": [
+                "text"
+              ]
+            }
+          },
+          "metadata": {
+            "operationMetadataId": "b8f61c18-7224-4f8a-9c5f-72fbce5df764"
+          }
+        }
+      },
+      "actions": {
+        "Respond_to_the_agent": {
+          "type": "Response",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "planapprovalstatusresult": {
+                  "title": "PlanApprovalStatusResult",
+                  "description": "",
+                  "type": "string",
+                  "x-ms-content-hint": "TEXT",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "additionalProperties": {}
+            },
+            "statusCode": 200,
+            "body": {
+              "planapprovalstatusresult": "@{variables('PlanApprovalStatusResult')}"
+            }
+          },
+          "runAfter": {
+            "ApprovalRequestFound": [
+              "SUCCEEDED",
+              "TIMEDOUT",
+              "SKIPPED",
+              "FAILED"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "81c94f73-dd52-465c-ad3b-a4686da63cc3"
+          }
+        },
+        "Initialize_variable": {
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "PlanApprovalStatusResult",
+                "type": "string",
+                "value": "NOT_COMPLETED: Approval status retrieval has not reached a confirmed outcome. No approval decision or search execution is confirmed by this response."
+              }
+            ]
+          },
+          "runAfter": {}
+        },
+        "LookupApprovalRequest": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "b5aba1ab-263a-4a28-97bb-b97e8c32525d",
+              "$filter": "ApprovalRequestID eq '@{triggerBody()?['text']}'",
+              "$top": 2
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "operationId": "GetItems",
+              "connectionName": "shared_sharepointonline"
+            }
+          },
+          "runAfter": {
+            "Initialize_variable": [
+              "SUCCEEDED"
+            ]
+          }
+        },
+        "ApprovalRequestFound": {
+          "type": "If",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@length(body('LookupApprovalRequest')?['value'])",
+                  "@1"
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "LookupApprovalDecision": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                  "table": "dba5e7fe-f43a-411f-aefc-d45f29e2b2ea",
+                  "$filter": "ApprovalRequestID eq '@{triggerBody()?['text']}'",
+                  "$top": 2
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "operationId": "GetItems",
+                  "connectionName": "shared_sharepointonline"
+                }
+              }
+            },
+            "DecisionLookupUnambiguous": {
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "lessOrEquals": [
+                      "@length(body('LookupApprovalDecision')?['value'])",
+                      "@1"
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "SelectApprovalRequestDetails": {
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@body('LookupApprovalRequest')?['value']",
+                    "select": {
+                      "ApprovalRequestID": "@item()?['ApprovalRequestID']",
+                      "DiscoveryRunID": "@item()?['DiscoveryRunID']",
+                      "PlanVersion": "@item()?['PlanVersion']",
+                      "RequestStatus": "@item()?['RequestStatus']?['Value']",
+                      "AssignedReviewerEmail": "@item()?['AssignedReviewer']?['Email']",
+                      "ProviderApprovalID": "@item()?['ProviderApprovalID']",
+                      "ReviewRequestedAt": "@item()?['ReviewRequestedAt']",
+                      "CompletedAt": "@item()?['CompletedAt']",
+                      "ProcessingMessage": "@item()?['ProcessingMessage']"
+                    }
+                  }
+                },
+                "SelectApprovalDecisionDetails": {
+                  "type": "Select",
+                  "inputs": {
+                    "from": "@body('LookupApprovalDecision')?['value']",
+                    "select": {
+                      "ApprovalID": "@item()?['ApprovalID']",
+                      "ApprovalRequestID": "@item()?['ApprovalRequestID']",
+                      "DiscoveryRunID": "@item()?['DiscoveryRunID']",
+                      "PlanVersion": "@item()?['PlanVersion']",
+                      "Decision": "@item()?['Decision']?['Value']",
+                      "DecisionAt": "@item()?['DecisionAt']",
+                      "DecisionByEmail": "@item()?['DecisionBy']?['Email']",
+                      "DecisionComments": "@item()?['DecisionComments']"
+                    }
+                  },
+                  "runAfter": {
+                    "SelectApprovalRequestDetails": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "FilterMismatchedDecisions": {
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@body('LookupApprovalDecision')?['value']",
+                    "where": "@equals(or(\r\n  not(equals(item()?['DiscoveryRunID'],first(body('LookupApprovalRequest')?['value'])?['DiscoveryRunID'])),\r\n  not(equals(item()?['PlanVersion'],first(body('LookupApprovalRequest')?['value'])?['PlanVersion'])),\r\n  not(equals(item()?['PlanSnapshot'],first(body('LookupApprovalRequest')?['value'])?['PlanSnapshot'])),\r\n  not(equals(\r\n    toLower(coalesce(item()?['DecisionBy']?['Email'],'')),\r\n    toLower(coalesce(first(body('LookupApprovalRequest')?['value'])?['AssignedReviewer']?['Email'],''))\r\n  )),\r\n  empty(item()?['DecisionAt']),\r\n  not(or(\r\n    equals(item()?['Decision']?['Value'],'APPROVED'),\r\n    equals(item()?['Decision']?['Value'],'REJECTED')\r\n  ))\r\n),true)"
+                  },
+                  "runAfter": {
+                    "SelectApprovalDecisionDetails": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                },
+                "ApprovalRecordsConsistent": {
+                  "type": "If",
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@and(\r\n  equals(length(body('FilterMismatchedDecisions')),0),\r\n  if(\r\n    equals(length(body('LookupApprovalDecision')?['value']),1),\r\n    equals(\r\n      first(body('LookupApprovalRequest')?['value'])?['RequestStatus']?['Value'],\r\n      first(body('LookupApprovalDecision')?['value'])?['Decision']?['Value']\r\n    ),\r\n    not(or(\r\n      equals(first(body('LookupApprovalRequest')?['value'])?['RequestStatus']?['Value'],'APPROVED'),\r\n      equals(first(body('LookupApprovalRequest')?['value'])?['RequestStatus']?['Value'],'REJECTED')\r\n    ))\r\n  )\r\n)",
+                          "@true"
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "AssembleApprovalStatusPackage": {
+                      "type": "Compose",
+                      "inputs": "@setProperty(\r\n  setProperty(\r\n    setProperty(\r\n      json('{\"PackageType\":\"DISCOVERY_PLAN_APPROVAL_STATUS\",\"RecordsConsistent\":true,\"SearchExecutionPerformed\":false,\"ExecutionReadinessChecked\":false,\"Gate1ApprovalConfirmed\":false}'),\r\n      'Request',\r\n      first(body('SelectApprovalRequestDetails'))\r\n    ),\r\n    'Decisions',\r\n    body('SelectApprovalDecisionDetails')\r\n  ),\r\n  'DecisionCount',\r\n  length(body('SelectApprovalDecisionDetails'))\r\n)"
+                    },
+                    "Set_variable_3": {
+                      "type": "SetVariable",
+                      "inputs": {
+                        "name": "PlanApprovalStatusResult",
+                        "value": "@string(outputs('AssembleApprovalStatusPackage'))"
+                      },
+                      "runAfter": {
+                        "AssembleApprovalStatusPackage": [
+                          "SUCCEEDED"
+                        ]
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Set_variable_2": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "PlanApprovalStatusResult",
+                          "value": "APPROVAL_RECORDS_INCONSISTENT: The saved request and decision could not be reconciled. A decision may be missing, differ from the request status, or fail identity, reviewer, timestamp, or snapshot checks. Approval is not confirmed by this response. Inspect the request, decision records, and background flow history before proceeding. No records were changed and no searches were executed."
+                        }
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "FilterMismatchedDecisions": [
+                      "SUCCEEDED"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Set_variable_1": {
+                    "type": "SetVariable",
+                    "inputs": {
+                      "name": "PlanApprovalStatusResult",
+                      "value": "DUPLICATE_APPROVAL_DECISIONS: Multiple decision records match the supplied ApprovalRequestID. Approval cannot be confirmed from this lookup. Inspect the saved records before proceeding. No records were changed and no searches were executed."
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "LookupApprovalDecision": [
+                  "SUCCEEDED"
+                ]
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Set_variable": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "PlanApprovalStatusResult",
+                  "value": "@if(\r\n  equals(length(body('LookupApprovalRequest')?['value']),0),\r\n  'NOT_FOUND: No approval request matches the supplied ApprovalRequestID. No records were changed.',\r\n  'DUPLICATE_APPROVAL_REQUEST_ID: Multiple approval requests match the supplied ApprovalRequestID. Resolve the duplicate records before relying on the approval status. No records were changed.'\r\n)"
+                }
+              }
+            }
+          },
+          "runAfter": {
+            "LookupApprovalRequest": [
+              "SUCCEEDED"
+            ]
+          }
+        }
+      },
+      "outputs": {},
+      "description": "When an agent calls the flow and send back a response.",
+      "metadata": {
+        "defaultToEmbeddedConnections": true
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}

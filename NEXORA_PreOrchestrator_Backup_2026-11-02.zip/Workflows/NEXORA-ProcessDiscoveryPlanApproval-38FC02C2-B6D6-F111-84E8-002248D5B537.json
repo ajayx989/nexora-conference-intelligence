@@ -1,0 +1,653 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedsharepointonline_8e0f8"
+        },
+        "api": {
+          "name": "shared_sharepointonline"
+        }
+      },
+      "shared_approvals": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedapprovals_d272b"
+        },
+        "api": {
+          "name": "shared_approvals"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "When_an_item_is_created": {
+          "recurrence": {
+            "frequency": "Minute",
+            "interval": 1
+          },
+          "evaluatedRecurrence": {
+            "frequency": "Minute",
+            "interval": 1
+          },
+          "splitOn": "@triggerOutputs()?['body/value']",
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "b5aba1ab-263a-4a28-97bb-b97e8c32525d"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "GetOnNewItems"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      },
+      "actions": {
+        "GetApprovalRequest": {
+          "runAfter": {},
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+              "table": "b5aba1ab-263a-4a28-97bb-b97e8c32525d",
+              "id": "@triggerBody()?['ID']"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "GetItem"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "RequestIsQueued": {
+          "actions": {
+            "MarkRequestProcessing": {
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                  "table": "b5aba1ab-263a-4a28-97bb-b97e8c32525d",
+                  "id": "@outputs('GetApprovalRequest')?['body/ID']",
+                  "item/ApprovalRequestID": "@outputs('GetApprovalRequest')?['body/ApprovalRequestID']",
+                  "item/DiscoveryRunID": "@outputs('GetApprovalRequest')?['body/DiscoveryRunID']",
+                  "item/PlanVersion": "@outputs('GetApprovalRequest')?['body/PlanVersion']",
+                  "item/PlanSnapshot": "@body('GetApprovalRequest')?['PlanSnapshot']",
+                  "item/RequestStatus/Value": "PROCESSING",
+                  "item/AssignedReviewer/Claims": "@body('GetApprovalRequest')?['AssignedReviewer']?['Claims']",
+                  "item/ProcessingMessage": "Preparing the saved discovery plan for human review. No approval recorded and no searches executed."
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "PatchItem"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "ReadPlanSnapshot": {
+              "runAfter": {
+                "MarkRequestProcessing": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Compose",
+              "inputs": "@json(body('GetApprovalRequest')?['PlanSnapshot'])"
+            },
+            "Condition_1": {
+              "actions": {
+                "FilterMismatchedSnapshotItems": {
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@outputs('ReadPlanSnapshot')?['PlanItems']",
+                    "where": "@equals(or(\r\n  not(equals(item()?['DiscoveryRunID'],body('GetApprovalRequest')?['DiscoveryRunID'])),\r\n  not(equals(item()?['PlanVersion'],body('GetApprovalRequest')?['PlanVersion'])),\r\n  empty(trim(coalesce(item()?['PlanItemID'],''))),\r\n  empty(trim(coalesce(item()?['QueryRunID'],''))),\r\n  empty(trim(coalesce(item()?['QueryText'],'')))\r\n),true)"
+                  }
+                },
+                "SnapshotItemsMatchRequest": {
+                  "actions": {
+                    "LookupApprovalRun": {
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "parameters": {
+                          "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                          "table": "2944f657-eb00-4751-bb03-afc58448d9aa",
+                          "$filter": "DiscoveryRunID eq '@{outputs('GetApprovalRequest')?['body/DiscoveryRunID']}'",
+                          "$top": 2
+                        },
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "GetItems"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      }
+                    },
+                    "ApprovalRunFound": {
+                      "actions": {
+                        "FilterSnapshotScopeMismatches": {
+                          "type": "Query",
+                          "inputs": {
+                            "from": "@outputs('ReadPlanSnapshot')?['PlanItems']",
+                            "where": "@not(equals(item()?['ScopeVersion'],first(body('LookupApprovalRun')?['value'])?['ScopeVersion']))"
+                          }
+                        },
+                        "ScopeAndReviewerValid": {
+                          "actions": {
+                            "BuildPlanReviewTable": {
+                              "type": "Table",
+                              "inputs": {
+                                "from": "@outputs('ReadPlanSnapshot')?['PlanItems']",
+                                "format": "CSV"
+                              }
+                            },
+                            "CreatePlanApproval": {
+                              "runAfter": {
+                                "BuildPlanReviewTable": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "approvalType": "Basic",
+                                  "ApprovalCreationInput/title": "@concat('NEXORA - Review discovery plan ',body('GetApprovalRequest')?['PlanVersion'],' | ',body('GetApprovalRequest')?['ApprovalRequestID'])",
+                                  "ApprovalCreationInput/assignedTo": "@body('GetApprovalRequest')?['AssignedReviewer']?['Email']",
+                                  "ApprovalCreationInput/details": "@concat(\r\n  'Review the exact discovery search plan below.',\r\n  decodeUriComponent('%0A%0A'),\r\n  'Approval request: ',body('GetApprovalRequest')?['ApprovalRequestID'],\r\n  decodeUriComponent('%0A'),\r\n  'Discovery run: ',body('GetApprovalRequest')?['DiscoveryRunID'],\r\n  decodeUriComponent('%0A'),\r\n  'Plan version: ',body('GetApprovalRequest')?['PlanVersion'],\r\n  decodeUriComponent('%0A%0A'),\r\n  'Approve authorizes only the listed search plan, subject to execution checks. This approval flow does not execute searches, change run status, or approve Gate 1.',\r\n  decodeUriComponent('%0A%0A'),\r\n  body('BuildPlanReviewTable')\r\n)",
+                                  "ApprovalCreationInput/enableNotifications": true,
+                                  "ApprovalCreationInput/enableReassignment": true
+                                },
+                                "host": {
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_approvals",
+                                  "connectionName": "shared_approvals",
+                                  "operationId": "CreateAnApproval"
+                                },
+                                "retryPolicy": {
+                                  "type": "none"
+                                },
+                                "authentication": "@parameters('$authentication')"
+                              }
+                            },
+                            "MarkAwaitingReview": {
+                              "runAfter": {
+                                "CreatePlanApproval": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                  "table": "b5aba1ab-263a-4a28-97bb-b97e8c32525d",
+                                  "id": "@outputs('GetApprovalRequest')?['body/ID']",
+                                  "item/ApprovalRequestID": "@outputs('GetApprovalRequest')?['body/ApprovalRequestID']",
+                                  "item/DiscoveryRunID": "@outputs('GetApprovalRequest')?['body/DiscoveryRunID']",
+                                  "item/PlanVersion": "@outputs('GetApprovalRequest')?['body/PlanVersion']",
+                                  "item/PlanSnapshot": "@body('GetApprovalRequest')?['PlanSnapshot']",
+                                  "item/RequestStatus/Value": "AWAITING_REVIEW",
+                                  "item/AssignedReviewer/Claims": "@body('GetApprovalRequest')?['AssignedReviewer']?['Claims']",
+                                  "item/ProviderApprovalID": "@outputs('CreatePlanApproval')?['body/name']",
+                                  "item/ReviewRequestedAt": "@utcNow()",
+                                  "item/ProcessingMessage": "Human approval created. Awaiting the assigned reviewer's decision. No searches executed."
+                                },
+                                "host": {
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                  "connectionName": "shared_sharepointonline",
+                                  "operationId": "PatchItem"
+                                },
+                                "authentication": "@parameters('$authentication')"
+                              }
+                            },
+                            "WaitForPlanApproval": {
+                              "runAfter": {
+                                "MarkAwaitingReview": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "limit": {
+                                "timeout": "P7D"
+                              },
+                              "type": "OpenApiConnectionWebhook",
+                              "inputs": {
+                                "parameters": {
+                                  "approvalName": "@outputs('CreatePlanApproval')?['body/name']"
+                                },
+                                "host": {
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_approvals",
+                                  "connectionName": "shared_approvals",
+                                  "operationId": "WaitForAnApproval"
+                                },
+                                "authentication": "@parameters('$authentication')"
+                              }
+                            },
+                            "GetRequestAfterReview": {
+                              "runAfter": {
+                                "WaitForPlanApproval": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                  "table": "b5aba1ab-263a-4a28-97bb-b97e8c32525d",
+                                  "id": "@outputs('GetApprovalRequest')?['body/ID']"
+                                },
+                                "host": {
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                  "connectionName": "shared_sharepointonline",
+                                  "operationId": "GetItem"
+                                },
+                                "authentication": "@parameters('$authentication')"
+                              }
+                            },
+                            "RequestUnchangedAfterReview": {
+                              "actions": {
+                                "ReviewerResponseValid": {
+                                  "actions": {
+                                    "SavePlanApprovalDecision": {
+                                      "type": "OpenApiConnection",
+                                      "inputs": {
+                                        "parameters": {
+                                          "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                          "table": "dba5e7fe-f43a-411f-aefc-d45f29e2b2ea",
+                                          "item/ApprovalID": "@concat('APR-',guid())",
+                                          "item/DiscoveryRunID": "@body('GetApprovalRequest')?['DiscoveryRunID']",
+                                          "item/PlanVersion": "@body('GetApprovalRequest')?['PlanVersion']",
+                                          "item/PlanSnapshot": "@body('GetApprovalRequest')?['PlanSnapshot']",
+                                          "item/DecisionAt": "@first(body('WaitForPlanApproval')?['responses'])?['responseDate']",
+                                          "item/ApprovalRequestID": "@body('GetApprovalRequest')?['ApprovalRequestID']",
+                                          "item/Title": "@body('GetApprovalRequest')?['ApprovalRequestID']",
+                                          "item/Decision/Value": "@if(equals(body('WaitForPlanApproval')?['outcome'],'Approve'),'APPROVED','REJECTED')",
+                                          "item/DecisionBy/Claims": "@concat('i:0#.f|membership|',first(body('WaitForPlanApproval')?['responses'])?['responder']?['email'])",
+                                          "item/DecisionComments": "@coalesce(first(body('WaitForPlanApproval')?['responses'])?['comments'],'')"
+                                        },
+                                        "host": {
+                                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                          "connectionName": "shared_sharepointonline",
+                                          "operationId": "PostItem"
+                                        },
+                                        "authentication": "@parameters('$authentication')"
+                                      }
+                                    },
+                                    "MarkApprovalRequestCompleted": {
+                                      "runAfter": {
+                                        "SavePlanApprovalDecision": [
+                                          "Succeeded"
+                                        ]
+                                      },
+                                      "type": "OpenApiConnection",
+                                      "inputs": {
+                                        "parameters": {
+                                          "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                          "table": "b5aba1ab-263a-4a28-97bb-b97e8c32525d",
+                                          "id": "@body('GetApprovalRequest')?['ID']",
+                                          "item/ApprovalRequestID": "@body('GetApprovalRequest')?['ApprovalRequestID']",
+                                          "item/DiscoveryRunID": "@body('GetApprovalRequest')?['DiscoveryRunID']",
+                                          "item/PlanVersion": "@body('GetApprovalRequest')?['PlanVersion']",
+                                          "item/PlanSnapshot": "@body('GetApprovalRequest')?['PlanSnapshot']",
+                                          "item/RequestStatus/Value": "@if(equals(body('WaitForPlanApproval')?['outcome'],'Approve'),'APPROVED','REJECTED')",
+                                          "item/AssignedReviewer/Claims": "@body('GetApprovalRequest')?['AssignedReviewer']?['Claims']",
+                                          "item/CompletedAt": "@utcNow()",
+                                          "item/ProcessingMessage": "The assigned reviewer's decision was saved in NEXORA_PlanApprovals. No searches were executed and the discovery run status was not changed."
+                                        },
+                                        "host": {
+                                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                          "connectionName": "shared_sharepointonline",
+                                          "operationId": "PatchItem"
+                                        },
+                                        "authentication": "@parameters('$authentication')"
+                                      }
+                                    }
+                                  },
+                                  "else": {
+                                    "actions": {
+                                      "StopInvalidReviewerResponse": {
+                                        "type": "Terminate",
+                                        "inputs": {
+                                          "runStatus": "Failed",
+                                          "runError": {
+                                            "code": "INVALID_REVIEWER_RESPONSE",
+                                            "message": "Approval response could not be validated against the assigned reviewer. No plan approval decision was saved. Inspect the flow history before retrying."
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "expression": {
+                                    "and": [
+                                      {
+                                        "equals": [
+                                          "@and(\r\n  equals(length(coalesce(body('WaitForPlanApproval')?['responses'],json('[]'))),1),\r\n  equals(\r\n    toLower(coalesce(first(body('WaitForPlanApproval')?['responses'])?['responder']?['email'],'')),\r\n    toLower(body('GetApprovalRequest')?['AssignedReviewer']?['Email'])\r\n  ),\r\n  or(\r\n    equals(body('WaitForPlanApproval')?['outcome'],'Approve'),\r\n    equals(body('WaitForPlanApproval')?['outcome'],'Reject')\r\n  )\r\n)",
+                                          "@true"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "type": "If"
+                                }
+                              },
+                              "runAfter": {
+                                "GetRequestAfterReview": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "else": {
+                                "actions": {
+                                  "StopChangedApprovalRequest": {
+                                    "type": "Terminate",
+                                    "inputs": {
+                                      "runStatus": "Cancelled"
+                                    }
+                                  }
+                                }
+                              },
+                              "expression": {
+                                "and": [
+                                  {
+                                    "equals": [
+                                      "@and(\r\n  equals(body('GetRequestAfterReview')?['RequestStatus']?['Value'],'AWAITING_REVIEW'),\r\n  equals(body('GetRequestAfterReview')?['ApprovalRequestID'],body('GetApprovalRequest')?['ApprovalRequestID']),\r\n  equals(body('GetRequestAfterReview')?['DiscoveryRunID'],body('GetApprovalRequest')?['DiscoveryRunID']),\r\n  equals(body('GetRequestAfterReview')?['PlanVersion'],body('GetApprovalRequest')?['PlanVersion']),\r\n  equals(body('GetRequestAfterReview')?['PlanSnapshot'],body('GetApprovalRequest')?['PlanSnapshot']),\r\n  equals(body('GetRequestAfterReview')?['AssignedReviewer']?['Claims'],body('GetApprovalRequest')?['AssignedReviewer']?['Claims']),\r\n  equals(body('GetRequestAfterReview')?['ProviderApprovalID'],outputs('CreatePlanApproval')?['body/name'])\r\n)",
+                                      "@true"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "type": "If"
+                            },
+                            "GetRequestAfterWaitFailure": {
+                              "runAfter": {
+                                "WaitForPlanApproval": [
+                                  "TimedOut",
+                                  "Failed"
+                                ]
+                              },
+                              "type": "OpenApiConnection",
+                              "inputs": {
+                                "parameters": {
+                                  "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                  "table": "b5aba1ab-263a-4a28-97bb-b97e8c32525d",
+                                  "id": "@body('GetApprovalRequest')?['ID']"
+                                },
+                                "host": {
+                                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                  "connectionName": "shared_sharepointonline",
+                                  "operationId": "GetItem"
+                                },
+                                "authentication": "@parameters('$authentication')"
+                              }
+                            },
+                            "FailedWaitRequestStillActive": {
+                              "actions": {
+                                "MarkApprovalWaitFailed": {
+                                  "type": "OpenApiConnection",
+                                  "inputs": {
+                                    "parameters": {
+                                      "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                      "table": "b5aba1ab-263a-4a28-97bb-b97e8c32525d",
+                                      "id": "@body('GetRequestAfterWaitFailure')?['ID']",
+                                      "item/ApprovalRequestID": "@body('GetRequestAfterWaitFailure')?['ApprovalRequestID']",
+                                      "item/DiscoveryRunID": "@body('GetRequestAfterWaitFailure')?['DiscoveryRunID']",
+                                      "item/PlanVersion": "@body('GetRequestAfterWaitFailure')?['PlanVersion']",
+                                      "item/PlanSnapshot": "@body('GetRequestAfterWaitFailure')?['PlanSnapshot']",
+                                      "item/RequestStatus/Value": "@if(equals(actions('WaitForPlanApproval')?['status'],'TimedOut'),'EXPIRED','FAILED')",
+                                      "item/AssignedReviewer/Claims": "@body('GetRequestAfterWaitFailure')?['AssignedReviewer']?['Claims']",
+                                      "item/CompletedAt": "@utcNow()",
+                                      "item/ProcessingMessage": "The approval wait failed or expired. No decision was recorded by this processing path. The approval service may still retain the request; inspect its status before retrying. No searches were executed."
+                                    },
+                                    "host": {
+                                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                      "connectionName": "shared_sharepointonline",
+                                      "operationId": "PatchItem"
+                                    },
+                                    "authentication": "@parameters('$authentication')"
+                                  }
+                                }
+                              },
+                              "runAfter": {
+                                "GetRequestAfterWaitFailure": [
+                                  "Succeeded"
+                                ]
+                              },
+                              "else": {
+                                "actions": {}
+                              },
+                              "expression": {
+                                "and": [
+                                  {
+                                    "equals": [
+                                      "@and(\r\n  equals(body('GetRequestAfterWaitFailure')?['RequestStatus']?['Value'],'AWAITING_REVIEW'),\r\n  equals(body('GetRequestAfterWaitFailure')?['ProviderApprovalID'],outputs('CreatePlanApproval')?['body/name'])\r\n)",
+                                      "@true"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "type": "If"
+                            }
+                          },
+                          "runAfter": {
+                            "FilterSnapshotScopeMismatches": [
+                              "Succeeded"
+                            ]
+                          },
+                          "else": {
+                            "actions": {
+                              "MarkScopeOrReviewerInvalid": {
+                                "type": "OpenApiConnection",
+                                "inputs": {
+                                  "parameters": {
+                                    "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                    "table": "b5aba1ab-263a-4a28-97bb-b97e8c32525d",
+                                    "id": "@outputs('GetApprovalRequest')?['body/ID']",
+                                    "item/ApprovalRequestID": "@outputs('GetApprovalRequest')?['body/ApprovalRequestID']",
+                                    "item/DiscoveryRunID": "@outputs('GetApprovalRequest')?['body/DiscoveryRunID']",
+                                    "item/PlanVersion": "@outputs('GetApprovalRequest')?['body/PlanVersion']",
+                                    "item/PlanSnapshot": "@body('GetApprovalRequest')?['PlanSnapshot']",
+                                    "item/RequestStatus/Value": "FAILED",
+                                    "item/AssignedReviewer/Claims": "@body('GetApprovalRequest')?['AssignedReviewer']?['Claims']",
+                                    "item/CompletedAt": "@utcNow()",
+                                    "item/ProcessingMessage": "Approval preparation failed: scope versions do not match, the run scope is missing, or the reviewer email is missing. No human approval was sent or recorded. No searches were executed."
+                                  },
+                                  "host": {
+                                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                    "connectionName": "shared_sharepointonline",
+                                    "operationId": "PatchItem"
+                                  },
+                                  "authentication": "@parameters('$authentication')"
+                                }
+                              }
+                            }
+                          },
+                          "expression": {
+                            "and": [
+                              {
+                                "equals": [
+                                  "@and(\r\n  equals(length(body('FilterSnapshotScopeMismatches')),0),\r\n  not(empty(trim(coalesce(first(body('LookupApprovalRun')?['value'])?['ScopeVersion'],'')))),\r\n  not(empty(trim(coalesce(body('GetApprovalRequest')?['AssignedReviewer']?['Email'],''))))\r\n)",
+                                  "@true"
+                                ]
+                              }
+                            ]
+                          },
+                          "type": "If"
+                        }
+                      },
+                      "runAfter": {
+                        "LookupApprovalRun": [
+                          "Succeeded"
+                        ]
+                      },
+                      "else": {
+                        "actions": {
+                          "MarkApprovalRunLookupFailed": {
+                            "type": "OpenApiConnection",
+                            "inputs": {
+                              "parameters": {
+                                "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                                "table": "b5aba1ab-263a-4a28-97bb-b97e8c32525d",
+                                "id": "@outputs('GetApprovalRequest')?['body/ID']",
+                                "item/ApprovalRequestID": "@outputs('GetApprovalRequest')?['body/ApprovalRequestID']",
+                                "item/DiscoveryRunID": "@outputs('GetApprovalRequest')?['body/DiscoveryRunID']",
+                                "item/PlanVersion": "@outputs('GetApprovalRequest')?['body/PlanVersion']",
+                                "item/PlanSnapshot": "@body('GetApprovalRequest')?['PlanSnapshot']",
+                                "item/RequestStatus/Value": "FAILED",
+                                "item/AssignedReviewer/Claims": "@body('GetApprovalRequest')?['AssignedReviewer']?['Claims']",
+                                "item/CompletedAt": "@utcNow()",
+                                "item/ProcessingMessage": "Discovery run lookup did not return exactly one record. No human approval was sent or recorded. No searches were executed."
+                              },
+                              "host": {
+                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                "connectionName": "shared_sharepointonline",
+                                "operationId": "PatchItem"
+                              },
+                              "authentication": "@parameters('$authentication')"
+                            }
+                          }
+                        }
+                      },
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@length(body('LookupApprovalRun')?['value'])",
+                              1
+                            ]
+                          }
+                        ]
+                      },
+                      "type": "If"
+                    }
+                  },
+                  "runAfter": {
+                    "FilterMismatchedSnapshotItems": [
+                      "Succeeded"
+                    ]
+                  },
+                  "else": {
+                    "actions": {
+                      "MarkSnapshotMismatch": {
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "parameters": {
+                            "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                            "table": "b5aba1ab-263a-4a28-97bb-b97e8c32525d",
+                            "id": "@outputs('GetApprovalRequest')?['body/ID']",
+                            "item/ApprovalRequestID": "@outputs('GetApprovalRequest')?['body/ApprovalRequestID']",
+                            "item/DiscoveryRunID": "@outputs('GetApprovalRequest')?['body/DiscoveryRunID']",
+                            "item/PlanVersion": "@outputs('GetApprovalRequest')?['body/PlanVersion']",
+                            "item/PlanSnapshot": "@body('GetApprovalRequest')?['PlanSnapshot']",
+                            "item/RequestStatus/Value": "FAILED",
+                            "item/AssignedReviewer/Claims": "@body('GetApprovalRequest')?['AssignedReviewer']?['Claims']",
+                            "item/CompletedAt": "@utcNow()",
+                            "item/ProcessingMessage": "Snapshot items failed validation: mismatched run or plan version, or missing required item fields. No human approval was sent or recorded. No searches were executed."
+                          },
+                          "host": {
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                            "connectionName": "shared_sharepointonline",
+                            "operationId": "PatchItem"
+                          },
+                          "authentication": "@parameters('$authentication')"
+                        }
+                      }
+                    }
+                  },
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@length(body('FilterMismatchedSnapshotItems'))",
+                          "@0"
+                        ]
+                      }
+                    ]
+                  },
+                  "type": "If"
+                }
+              },
+              "runAfter": {
+                "ReadPlanSnapshot": [
+                  "Succeeded"
+                ]
+              },
+              "else": {
+                "actions": {
+                  "MarkInvalidSnapshot": {
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "dataset": "https://mnnitedu.sharepoint.com/sites/NEXORAIntelligence",
+                        "table": "b5aba1ab-263a-4a28-97bb-b97e8c32525d",
+                        "id": "@outputs('GetApprovalRequest')?['body/ID']",
+                        "item/ApprovalRequestID": "@outputs('GetApprovalRequest')?['body/ApprovalRequestID']",
+                        "item/DiscoveryRunID": "@outputs('GetApprovalRequest')?['body/DiscoveryRunID']",
+                        "item/PlanVersion": "@outputs('GetApprovalRequest')?['body/PlanVersion']",
+                        "item/PlanSnapshot": "@body('GetApprovalRequest')?['PlanSnapshot']",
+                        "item/RequestStatus/Value": "FAILED",
+                        "item/AssignedReviewer/Claims": "@body('GetApprovalRequest')?['AssignedReviewer']?['Claims']",
+                        "item/CompletedAt": "@utcNow()",
+                        "item/ProcessingMessage": "Snapshot validation failed. No human approval was sent or recorded. No searches were executed."
+                      },
+                      "host": {
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                        "connectionName": "shared_sharepointonline",
+                        "operationId": "PatchItem"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    }
+                  }
+                }
+              },
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@and(\r\n  equals(outputs('ReadPlanSnapshot')?['SnapshotType'],'DISCOVERY_PLAN_EXECUTION_APPROVAL'),\r\n  equals(outputs('ReadPlanSnapshot')?['SnapshotSchemaVersion'],'1.0'),\r\n  equals(outputs('ReadPlanSnapshot')?['ExecutionAuthorized'],false),\r\n  greater(length(coalesce(outputs('ReadPlanSnapshot')?['PlanItems'],json('[]'))),0),\r\n  lessOrEquals(length(coalesce(outputs('ReadPlanSnapshot')?['PlanItems'],json('[]'))),50),\r\n  equals(outputs('ReadPlanSnapshot')?['PlanItemCount'],length(coalesce(outputs('ReadPlanSnapshot')?['PlanItems'],json('[]'))))\r\n)",
+                      "@true"
+                    ]
+                  }
+                ]
+              },
+              "type": "If"
+            }
+          },
+          "runAfter": {
+            "GetApprovalRequest": [
+              "Succeeded"
+            ]
+          },
+          "else": {
+            "actions": {}
+          },
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@outputs('GetApprovalRequest')?['body/RequestStatus/Value']",
+                  "QUEUED"
+                ]
+              }
+            ]
+          },
+          "type": "If"
+        }
+      },
+      "outputs": {}
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}
